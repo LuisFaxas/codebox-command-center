@@ -115,56 +115,56 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HOOK-01 | Pending | Pending |
-| HOOK-02 | Pending | Pending |
-| HOOK-03 | Pending | Pending |
-| HOOK-04 | Pending | Pending |
-| PROJ-01 | Pending | Pending |
-| PROJ-02 | Pending | Pending |
-| PROJ-03 | Pending | Pending |
-| RT-01 | Pending | Pending |
-| RT-02 | Pending | Pending |
-| RT-03 | Pending | Pending |
-| RT-04 | Pending | Pending |
-| VOICE-01 | Pending | Pending |
-| VOICE-02 | Pending | Pending |
-| VOICE-03 | Pending | Pending |
-| VOICE-04 | Pending | Pending |
-| VOICE-05 | Pending | Pending |
-| PUSH-01 | Pending | Pending |
-| PUSH-02 | Pending | Pending |
-| PUSH-03 | Pending | Pending |
-| PUSH-04 | Pending | Pending |
-| PUSH-05 | Pending | Pending |
-| VIS-01 | Pending | Pending |
-| VIS-02 | Pending | Pending |
-| VIS-03 | Pending | Pending |
-| TMPL-01 | Pending | Pending |
-| TMPL-02 | Pending | Pending |
-| TMPL-03 | Pending | Pending |
-| TMPL-04 | Pending | Pending |
-| DASH-01 | Pending | Pending |
-| DASH-02 | Pending | Pending |
-| DASH-03 | Pending | Pending |
-| DASH-04 | Pending | Pending |
-| DASH-05 | Pending | Pending |
-| MULTI-01 | Pending | Pending |
-| MULTI-02 | Pending | Pending |
-| MULTI-03 | Pending | Pending |
-| MULTI-04 | Pending | Pending |
-| MUTE-01 | Pending | Pending |
-| MUTE-02 | Pending | Pending |
-| MUTE-03 | Pending | Pending |
-| UI-01 | Pending | Pending |
-| UI-02 | Pending | Pending |
-| UI-03 | Pending | Pending |
-| UI-04 | Pending | Pending |
+| HOOK-01 | Phase 1 | Pending |
+| HOOK-02 | Phase 1 | Pending |
+| HOOK-03 | Phase 1 | Pending |
+| HOOK-04 | Phase 1 | Pending |
+| PROJ-01 | Phase 1 | Pending |
+| PROJ-02 | Phase 1 | Pending |
+| PROJ-03 | Phase 1 | Pending |
+| RT-01 | Phase 2 | Pending |
+| RT-02 | Phase 2 | Pending |
+| RT-03 | Phase 2 | Pending |
+| RT-04 | Phase 2 | Pending |
+| VOICE-01 | Phase 3 | Pending |
+| VOICE-02 | Phase 3 | Pending |
+| VOICE-03 | Phase 3 | Pending |
+| VOICE-04 | Phase 3 | Pending |
+| VOICE-05 | Phase 3 | Pending |
+| PUSH-01 | Phase 3 | Pending |
+| PUSH-02 | Phase 3 | Pending |
+| PUSH-03 | Phase 3 | Pending |
+| PUSH-04 | Phase 3 | Pending |
+| PUSH-05 | Phase 3 | Pending |
+| VIS-01 | Phase 3 | Pending |
+| VIS-02 | Phase 3 | Pending |
+| VIS-03 | Phase 3 | Pending |
+| TMPL-01 | Phase 3 | Pending |
+| TMPL-02 | Phase 3 | Pending |
+| TMPL-03 | Phase 3 | Pending |
+| TMPL-04 | Phase 3 | Pending |
+| DASH-01 | Phase 3 | Pending |
+| DASH-02 | Phase 3 | Pending |
+| DASH-03 | Phase 3 | Pending |
+| DASH-04 | Phase 3 | Pending |
+| DASH-05 | Phase 3 | Pending |
+| MULTI-01 | Phase 4 | Pending |
+| MULTI-02 | Phase 4 | Pending |
+| MULTI-03 | Phase 4 | Pending |
+| MULTI-04 | Phase 4 | Pending |
+| MUTE-01 | Phase 4 | Pending |
+| MUTE-02 | Phase 4 | Pending |
+| MUTE-03 | Phase 4 | Pending |
+| UI-01 | Phase 3 | Pending |
+| UI-02 | Phase 3 | Pending |
+| UI-03 | Phase 3 | Pending |
+| UI-04 | Phase 2 | Pending |
 
 **Coverage:**
 - v1 requirements: 44 total
-- Mapped to phases: 0
-- Unmapped: 44
+- Mapped to phases: 44
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after initial definition*
+*Last updated: 2026-03-26 after roadmap creation*
