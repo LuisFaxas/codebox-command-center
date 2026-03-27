@@ -40,6 +40,27 @@ try {
   }
 } catch(e) {}
 
+// Debounce map: prevents duplicate triggers within window (per D-10, D-11)
+const debounceMap = new Map();
+const DEBOUNCE_MS = 3000;
+
+function isDuplicate(type, project, sessionId) {
+  const key = `${type}:${project}:${sessionId}`;
+  const now = Date.now();
+  const last = debounceMap.get(key);
+  if (last && (now - last) < DEBOUNCE_MS) return true;
+  debounceMap.set(key, now);
+  return false;
+}
+
+// Cleanup stale debounce entries every 60 seconds (prevents memory leak on long-lived server)
+setInterval(() => {
+  const cutoff = Date.now() - 30000;
+  for (const [key, ts] of debounceMap) {
+    if (ts < cutoff) debounceMap.delete(key);
+  }
+}, 60000);
+
 function saveConfig() {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
 }
@@ -396,18 +417,59 @@ const server = http.createServer((req, res) => {
       }
     });
 
-  } else if (parsed.pathname === '/trigger') {
+  } else if (parsed.pathname === '/trigger' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => {
+      body += c;
+      if (body.length > 4096) { req.destroy(); return; }
+    });
+    req.on('end', () => {
+      try {
+        const { type: rawType, project: rawProject, sessionId, machine, cwd, timestamp } = JSON.parse(body);
+        const type = rawType || 'done';
+        const project = rawProject || '';
+
+        if (isDuplicate(type, project, sessionId || 'unknown')) {
+          res.writeHead(200, {'Content-Type': 'application/json'});
+          res.end(JSON.stringify({ ok: true, deduplicated: true }));
+          return;
+        }
+
+        // Write trigger.json for backward compat with browser /check polling
+        const now = new Date();
+        fs.writeFileSync(TRIGGER_FILE, JSON.stringify({ type, project, machine, sessionId, timestamp }));
+        fs.utimesSync(TRIGGER_FILE, now, now);
+
+        // Pre-generate cached WAV in background
+        if (project) {
+          generateCached(type, project, () => {});
+        }
+
+        res.writeHead(200, {'Content-Type': 'application/json'});
+        res.end(JSON.stringify({ ok: true, type, project, deduplicated: false }));
+      } catch(e) {
+        res.writeHead(400, {'Content-Type': 'application/json'});
+        res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
+      }
+    });
+
+  } else if (parsed.pathname === '/trigger' && req.method === 'GET') {
+    // Backward compat: old hooks still using GET with query params
     const type = parsed.query.type || 'done';
     const project = parsed.query.project || '';
+
+    if (isDuplicate(type, project, 'legacy')) {
+      res.writeHead(200, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify({ ok: true, deduplicated: true }));
+      return;
+    }
+
     const now = new Date();
     fs.writeFileSync(TRIGGER_FILE, JSON.stringify({ type, project }));
     fs.utimesSync(TRIGGER_FILE, now, now);
-
-    // Pre-generate cached WAV in background
     if (project) {
       generateCached(type, project, () => {});
     }
-
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({ ok: true, type, project }));
 
