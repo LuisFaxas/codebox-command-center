@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Hooks work when Claude Code is launched from any subdirectory of a project
 **Plans:** 2 plans
 Plans:
-- [ ] 01-01-PLAN.md — Rewrite hook script + update server /trigger endpoint with POST and debounce
+- [x] 01-01-PLAN.md — Rewrite hook script + update server /trigger endpoint with POST and debounce
 - [ ] 01-02-PLAN.md — Configure hooks in settings.json + integration test + human verification
 
 ### Phase 2: Real-Time Connection + Server Restructure

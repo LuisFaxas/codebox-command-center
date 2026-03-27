@@ -9,15 +9,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Hook Reliability
 
-- [ ] **HOOK-01**: Stop hook fires exactly once per Claude response completion, not randomly
-- [ ] **HOOK-02**: AskUserQuestion hook fires when Claude asks a question (via PermissionRequest, not PostToolUse)
-- [ ] **HOOK-03**: Hooks work correctly from subdirectories using absolute paths for `$CLAUDE_PROJECT_DIR`
-- [ ] **HOOK-04**: Local CodeBox hook resolves project name (not empty string)
+- [x] **HOOK-01**: Stop hook fires exactly once per Claude response completion, not randomly
+- [x] **HOOK-02**: AskUserQuestion hook fires when Claude asks a question (via PermissionRequest, not PostToolUse)
+- [x] **HOOK-03**: Hooks work correctly from subdirectories using absolute paths for `$CLAUDE_PROJECT_DIR`
+- [x] **HOOK-04**: Local CodeBox hook resolves project name (not empty string)
 
 ### Project Identity
 
-- [ ] **PROJ-01**: Project name auto-resolved from folder basename (cleaned, title-cased)
-- [ ] **PROJ-02**: Project name included in every notification (voice, push, toast)
+- [x] **PROJ-01**: Project name auto-resolved from folder basename (cleaned, title-cased)
+- [x] **PROJ-02**: Project name included in every notification (voice, push, toast)
 - [ ] **PROJ-03**: Project name resolution works from CodeBox, Lenovo, and Mac
 
 ### Real-Time Connection
@@ -115,12 +115,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HOOK-01 | Phase 1 | Pending |
-| HOOK-02 | Phase 1 | Pending |
-| HOOK-03 | Phase 1 | Pending |
-| HOOK-04 | Phase 1 | Pending |
-| PROJ-01 | Phase 1 | Pending |
-| PROJ-02 | Phase 1 | Pending |
+| HOOK-01 | Phase 1 | Complete |
+| HOOK-02 | Phase 1 | Complete |
+| HOOK-03 | Phase 1 | Complete |
+| HOOK-04 | Phase 1 | Complete |
+| PROJ-01 | Phase 1 | Complete |
+| PROJ-02 | Phase 1 | Complete |
 | PROJ-03 | Phase 1 | Pending |
 | RT-01 | Phase 2 | Pending |
 | RT-02 | Phase 2 | Pending |
