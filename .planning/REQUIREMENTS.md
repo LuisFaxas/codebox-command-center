@@ -31,38 +31,38 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **VOICE-01**: Voice notification plays on Stop event with project name
 - [ ] **VOICE-02**: Voice notification plays on AskUserQuestion event with project name
-- [ ] **VOICE-03**: Stop and question events use different voice configurations
+- [x] **VOICE-03**: Stop and question events use different voice configurations
 - [ ] **VOICE-04**: Voice selection panel with audition per notification type
-- [ ] **VOICE-05**: Rate and pitch configurable per notification type
+- [x] **VOICE-05**: Rate and pitch configurable per notification type
 
 ### Browser Push Notifications
 
 - [ ] **PUSH-01**: Browser push notification fires when tab is in background
 - [ ] **PUSH-02**: Push notification includes project name and event type
-- [ ] **PUSH-03**: Service worker registered for background push delivery
-- [ ] **PUSH-04**: VAPID keys generated and persisted to disk (survive PM2 restarts)
+- [x] **PUSH-03**: Service worker registered for background push delivery
+- [x] **PUSH-04**: VAPID keys generated and persisted to disk (survive PM2 restarts)
 - [ ] **PUSH-05**: User prompted for notification permission on first visit
 
 ### Visual Notifications
 
-- [ ] **VIS-01**: Toast notification appears in-app for each event
-- [ ] **VIS-02**: Toast differentiates between done and question events (color/icon)
-- [ ] **VIS-03**: Toast includes project name
+- [x] **VIS-01**: Toast notification appears in-app for each event
+- [x] **VIS-02**: Toast differentiates between done and question events (color/icon)
+- [x] **VIS-03**: Toast includes project name
 
 ### Template Editor
 
 - [ ] **TMPL-01**: User can customize notification message templates per event type
 - [ ] **TMPL-02**: Templates support `{project}` placeholder for project name
 - [ ] **TMPL-03**: Template changes apply to voice, push, and toast notifications
-- [ ] **TMPL-04**: Templates persist across server restarts (saved to config)
+- [x] **TMPL-04**: Templates persist across server restarts (saved to config)
 
 ### Dashboard
 
-- [ ] **DASH-01**: Session status board shows all active Claude Code projects
-- [ ] **DASH-02**: Each session displays status: working / done / needs attention
-- [ ] **DASH-03**: Status updates in real-time via SSE
-- [ ] **DASH-04**: Activity feed shows chronological event stream across all projects
-- [ ] **DASH-05**: Activity feed shows project name, event type, and timestamp per entry
+- [x] **DASH-01**: Session status board shows all active Claude Code projects
+- [x] **DASH-02**: Each session displays status: working / done / needs attention
+- [x] **DASH-03**: Status updates in real-time via SSE
+- [x] **DASH-04**: Activity feed shows chronological event stream across all projects
+- [x] **DASH-05**: Activity feed shows project name, event type, and timestamp per entry
 
 ### Multi-Machine
 
@@ -79,9 +79,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### UI/UX
 
-- [ ] **UI-01**: Single polished web app served from CodeBox
-- [ ] **UI-02**: Beautiful, modern design (not generic/utilitarian)
-- [ ] **UI-03**: Accessible via LAN (192.168.1.122) and Tailscale (100.123.116.23)
+- [x] **UI-01**: Single polished web app served from CodeBox
+- [x] **UI-02**: Beautiful, modern design (not generic/utilitarian)
+- [x] **UI-03**: Accessible via LAN (192.168.1.122) and Tailscale (100.123.116.23)
 - [x] **UI-04**: Embedded HTML extracted from server.js to separate frontend
 
 ## v2 Requirements
@@ -128,26 +128,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RT-04 | Phase 2 | Complete |
 | VOICE-01 | Phase 3 | Pending |
 | VOICE-02 | Phase 3 | Pending |
-| VOICE-03 | Phase 3 | Pending |
+| VOICE-03 | Phase 3 | Complete |
 | VOICE-04 | Phase 3 | Pending |
-| VOICE-05 | Phase 3 | Pending |
+| VOICE-05 | Phase 3 | Complete |
 | PUSH-01 | Phase 3 | Pending |
 | PUSH-02 | Phase 3 | Pending |
-| PUSH-03 | Phase 3 | Pending |
-| PUSH-04 | Phase 3 | Pending |
+| PUSH-03 | Phase 3 | Complete |
+| PUSH-04 | Phase 3 | Complete |
 | PUSH-05 | Phase 3 | Pending |
-| VIS-01 | Phase 3 | Pending |
-| VIS-02 | Phase 3 | Pending |
-| VIS-03 | Phase 3 | Pending |
+| VIS-01 | Phase 3 | Complete |
+| VIS-02 | Phase 3 | Complete |
+| VIS-03 | Phase 3 | Complete |
 | TMPL-01 | Phase 3 | Pending |
 | TMPL-02 | Phase 3 | Pending |
 | TMPL-03 | Phase 3 | Pending |
-| TMPL-04 | Phase 3 | Pending |
-| DASH-01 | Phase 3 | Pending |
-| DASH-02 | Phase 3 | Pending |
-| DASH-03 | Phase 3 | Pending |
-| DASH-04 | Phase 3 | Pending |
-| DASH-05 | Phase 3 | Pending |
+| TMPL-04 | Phase 3 | Complete |
+| DASH-01 | Phase 3 | Complete |
+| DASH-02 | Phase 3 | Complete |
+| DASH-03 | Phase 3 | Complete |
+| DASH-04 | Phase 3 | Complete |
+| DASH-05 | Phase 3 | Complete |
 | MULTI-01 | Phase 4 | Pending |
 | MULTI-02 | Phase 4 | Pending |
 | MULTI-03 | Phase 4 | Pending |
@@ -155,9 +155,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MUTE-01 | Phase 4 | Pending |
 | MUTE-02 | Phase 4 | Pending |
 | MUTE-03 | Phase 4 | Pending |
-| UI-01 | Phase 3 | Pending |
-| UI-02 | Phase 3 | Pending |
-| UI-03 | Phase 3 | Pending |
+| UI-01 | Phase 3 | Complete |
+| UI-02 | Phase 3 | Complete |
+| UI-03 | Phase 3 | Complete |
 | UI-04 | Phase 2 | Complete |
 
 **Coverage:**
