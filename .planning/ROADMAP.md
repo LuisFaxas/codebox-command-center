@@ -42,7 +42,10 @@ Plans:
   2. The browser dashboard auto-reconnects after a network interruption without user action
   3. The SSE connection stays alive through Caddy without disconnecting every 2 minutes
   4. The server HTML is served from a static file, not embedded in a JS string
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 02-01-PLAN.md — ES module migration + server module split + SSE event bus
+- [ ] 02-02-PLAN.md — Frontend extraction with EventSource client + Caddy SSE config
 
 ### Phase 3: Notifications Dashboard
 **Goal**: A polished single-page app delivers voice, browser push, and visual toasts for every event alongside a live session status grid and configurable templates
@@ -75,6 +78,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Hook Reliability + Project Identity | 2/2 | Complete   | 2026-03-28 |
-| 2. Real-Time Connection + Server Restructure | 0/? | Not started | - |
+| 2. Real-Time Connection + Server Restructure | 0/2 | Not started | - |
 | 3. Notifications Dashboard | 0/? | Not started | - |
 | 4. Multi-Machine + Polish | 0/? | Not started | - |
