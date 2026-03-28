@@ -597,6 +597,245 @@
       color: var(--text-secondary);
     }
 
+    /* === CONFIG PANEL === */
+    .config-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 900;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .config-overlay.open {
+      display: block;
+      opacity: 1;
+    }
+
+    .config-panel {
+      position: fixed;
+      right: 0;
+      top: 0;
+      height: 100vh;
+      width: 380px;
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border);
+      z-index: 950;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .config-panel.open {
+      transform: translateX(0);
+    }
+
+    .config-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .config-header h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .config-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.3rem;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .config-close:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .config-body {
+      padding: 16px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .config-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .config-tab {
+      flex: 1;
+      padding: 8px 16px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .config-tab:hover {
+      color: var(--text-secondary);
+    }
+
+    .config-tab.active {
+      color: var(--accent-working);
+      border-bottom-color: var(--accent-working);
+    }
+
+    .config-section {
+      margin-bottom: 20px;
+    }
+
+    .config-label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .config-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 0 0 6px 0;
+    }
+
+    .config-input {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-family: var(--font-ui);
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .config-input:focus {
+      outline: none;
+      border-color: var(--accent-working);
+    }
+
+    .config-slider {
+      width: 100%;
+      accent-color: var(--accent-working);
+      margin-top: 4px;
+    }
+
+    .config-btn {
+      padding: 8px 16px;
+      background: var(--accent-working);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: opacity 0.2s;
+    }
+
+    .config-btn:hover {
+      opacity: 0.9;
+    }
+
+    .config-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .config-current-voice {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+    }
+
+    .voice-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .voice-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      border: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+
+    .voice-item.selected {
+      border-color: var(--accent-working);
+    }
+
+    .voice-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .voice-item-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .voice-item-full {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .voice-item-btn {
+      padding: 4px 10px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    .voice-play-btn {
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+
+    .voice-use-btn {
+      background: var(--accent-working);
+      color: white;
+    }
+
+    .voice-item-btn:hover {
+      opacity: 0.85;
+    }
+
     /* === RESPONSIVE === */
     @media (max-width: 900px) {
       .dashboard {
@@ -611,6 +850,10 @@
         width: 280px;
         right: 10px;
       }
+
+      .config-panel {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -623,7 +866,7 @@
         <span class="connection-dot" id="connectionDot"></span>
         <span id="connectionText">Connecting...</span>
       </div>
-      <button class="header-gear" id="gearBtn" title="Settings">&#9881;</button>
+      <button class="header-gear" id="gearBtn" title="Settings" onclick="openConfig()">&#9881;</button>
     </div>
   </header>
 
@@ -675,6 +918,46 @@
       </div>
     </div>
   </main>
+
+  <div id="config-overlay" class="config-overlay" onclick="closeConfig()"></div>
+  <aside id="config-panel" class="config-panel">
+    <div class="config-header">
+      <h2>Notification Settings</h2>
+      <button onclick="closeConfig()" class="config-close">&times;</button>
+    </div>
+    <div class="config-body">
+      <div class="config-tabs">
+        <button id="cfg-tab-done" class="config-tab active" onclick="switchConfigTab('done')">Done</button>
+        <button id="cfg-tab-question" class="config-tab" onclick="switchConfigTab('question')">Question</button>
+      </div>
+
+      <div class="config-section">
+        <label class="config-label">Message Template</label>
+        <p class="config-hint">Use {project} for the project name</p>
+        <input id="cfg-template" type="text" class="config-input" onchange="saveCurrentConfig()">
+      </div>
+
+      <div class="config-section">
+        <label class="config-label">Speech Rate: <span id="cfg-rate-val">0%</span></label>
+        <input id="cfg-rate" type="range" min="-50" max="50" value="0" class="config-slider" oninput="updateRateLabel()" onchange="saveCurrentConfig()">
+      </div>
+
+      <div class="config-section">
+        <label class="config-label">Speech Pitch: <span id="cfg-pitch-val">0Hz</span></label>
+        <input id="cfg-pitch" type="range" min="-50" max="50" value="0" class="config-slider" oninput="updatePitchLabel()" onchange="saveCurrentConfig()">
+      </div>
+
+      <div class="config-section">
+        <label class="config-label">Voice</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="cfg-preview-text" type="text" class="config-input" placeholder="Preview text..." style="flex:1">
+          <button id="cfg-generate-btn" onclick="generateVoices()" class="config-btn">Generate</button>
+        </div>
+        <div id="cfg-current-voice" class="config-current-voice" style="display:none"></div>
+        <div id="cfg-voices" class="voice-list"></div>
+      </div>
+    </div>
+  </aside>
 
   <div id="toast-container"></div>
 
@@ -757,6 +1040,10 @@
 
     eventSource.addEventListener('config:updated', (e) => {
       localConfig = JSON.parse(e.data);
+      serverConfig = localConfig;
+      if (document.getElementById('config-panel').classList.contains('open')) {
+        applyConfigTab();
+      }
     });
 
     eventSource.addEventListener('connection:health', () => {
@@ -966,6 +1253,206 @@
     return div.innerHTML;
   }
 
+  // === CONFIG PANEL ===
+  let configTab = 'done';
+  let serverConfig = {};
+  let configAudio = null;
+
+  async function loadConfig() {
+    try {
+      serverConfig = await (await fetch('/config')).json();
+      localConfig = serverConfig;
+    } catch(e) {}
+  }
+
+  function openConfig() {
+    document.getElementById('config-panel').classList.add('open');
+    document.getElementById('config-overlay').classList.add('open');
+    applyConfigTab();
+  }
+
+  function closeConfig() {
+    document.getElementById('config-panel').classList.remove('open');
+    document.getElementById('config-overlay').classList.remove('open');
+    if (configAudio) {
+      try { configAudio.pause(); } catch(e) {}
+      configAudio = null;
+    }
+  }
+
+  function switchConfigTab(tab) {
+    configTab = tab;
+    document.getElementById('cfg-tab-done').classList.toggle('active', tab === 'done');
+    document.getElementById('cfg-tab-question').classList.toggle('active', tab === 'question');
+    applyConfigTab();
+  }
+
+  function applyConfigTab() {
+    const cfg = serverConfig[configTab] || {};
+    const template = cfg.template || '';
+    const rate = cfg.rate || '+0%';
+    const pitch = cfg.pitch || '+0Hz';
+
+    document.getElementById('cfg-template').value = template;
+
+    // Parse rate: "+X%" or "-X%" or "X%"
+    const rateNum = parseInt(rate.replace('%', '').replace('+', ''), 10) || 0;
+    document.getElementById('cfg-rate').value = rateNum;
+    updateRateLabel();
+
+    // Parse pitch: "+XHz" or "-XHz" or "XHz"
+    const pitchNum = parseInt(pitch.replace('Hz', '').replace('+', ''), 10) || 0;
+    document.getElementById('cfg-pitch').value = pitchNum;
+    updatePitchLabel();
+
+    // Preview text defaults to template with placeholder replaced
+    document.getElementById('cfg-preview-text').value = template.replace('{project}', 'My Project');
+
+    // Show current voice
+    const currentVoiceEl = document.getElementById('cfg-current-voice');
+    if (cfg.voice) {
+      currentVoiceEl.textContent = 'Current: ' + cfg.voice;
+      currentVoiceEl.style.display = 'block';
+    } else {
+      currentVoiceEl.style.display = 'none';
+    }
+
+    // Clear voice list (user needs to generate to see samples)
+    document.getElementById('cfg-voices').innerHTML = '';
+  }
+
+  function updateRateLabel() {
+    const val = document.getElementById('cfg-rate').value;
+    document.getElementById('cfg-rate-val').textContent = val + '%';
+  }
+
+  function updatePitchLabel() {
+    const val = document.getElementById('cfg-pitch').value;
+    document.getElementById('cfg-pitch-val').textContent = val + 'Hz';
+  }
+
+  function formatRate(val) {
+    const n = parseInt(val, 10);
+    return n >= 0 ? '+' + n + '%' : n + '%';
+  }
+
+  function formatPitch(val) {
+    const n = parseInt(val, 10);
+    return n >= 0 ? '+' + n + 'Hz' : n + 'Hz';
+  }
+
+  async function saveCurrentConfig() {
+    const template = document.getElementById('cfg-template').value;
+    const rate = formatRate(document.getElementById('cfg-rate').value);
+    const pitch = formatPitch(document.getElementById('cfg-pitch').value);
+    const voice = (serverConfig[configTab] && serverConfig[configTab].voice) || 'en-US-GuyNeural';
+
+    try {
+      const resp = await fetch('/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voice, template, type: configTab, rate, pitch })
+      });
+      if (resp.ok) {
+        if (!serverConfig[configTab]) serverConfig[configTab] = {};
+        serverConfig[configTab].voice = voice;
+        serverConfig[configTab].template = template;
+        serverConfig[configTab].rate = rate;
+        serverConfig[configTab].pitch = pitch;
+      }
+    } catch(e) {}
+  }
+
+  async function generateVoices() {
+    const btn = document.getElementById('cfg-generate-btn');
+    let text = document.getElementById('cfg-preview-text').value.trim();
+    if (!text) {
+      const template = document.getElementById('cfg-template').value || 'Done with {project}';
+      text = template.replace('{project}', 'My Project');
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+
+    try {
+      await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      await loadVoiceSamples();
+    } catch(e) {}
+
+    btn.disabled = false;
+    btn.textContent = 'Generate';
+  }
+
+  async function loadVoiceSamples() {
+    try {
+      const samples = await (await fetch('/samples')).json();
+      const container = document.getElementById('cfg-voices');
+      container.innerHTML = '';
+
+      const currentVoice = (serverConfig[configTab] && serverConfig[configTab].voice) || '';
+
+      for (const name of samples) {
+        // name format: "shortname--fullvoice.wav"
+        const parts = name.replace('.wav', '').split('--');
+        const shortName = parts[0] || name;
+        const fullVoice = parts[1] || name;
+
+        const item = document.createElement('div');
+        item.className = 'voice-item';
+        if (fullVoice === currentVoice) item.classList.add('selected');
+
+        item.innerHTML =
+          '<button class="voice-item-btn voice-play-btn" data-wav="' + escapeHtml(name) + '">Play</button>' +
+          '<div class="voice-item-info">' +
+            '<div class="voice-item-name">' + escapeHtml(shortName) + '</div>' +
+            '<div class="voice-item-full">' + escapeHtml(fullVoice) + '</div>' +
+          '</div>' +
+          '<button class="voice-item-btn voice-use-btn" data-voice="' + escapeHtml(fullVoice) + '">Use This</button>';
+
+        // Wire play button
+        item.querySelector('.voice-play-btn').addEventListener('click', function() {
+          const wavName = this.getAttribute('data-wav');
+          if (configAudio) {
+            try { configAudio.pause(); } catch(e) {}
+          }
+          configAudio = new Audio('/wav/' + encodeURIComponent(wavName) + '?t=' + Date.now());
+          configAudio.play().catch(() => {});
+        });
+
+        // Wire use button
+        item.querySelector('.voice-use-btn').addEventListener('click', function() {
+          const voice = this.getAttribute('data-voice');
+          selectVoice(voice);
+        });
+
+        container.appendChild(item);
+      }
+    } catch(e) {}
+  }
+
+  async function selectVoice(voice) {
+    if (!serverConfig[configTab]) serverConfig[configTab] = {};
+    serverConfig[configTab].voice = voice;
+    await saveCurrentConfig();
+
+    // Update visual selection
+    const items = document.querySelectorAll('#cfg-voices .voice-item');
+    for (const item of items) {
+      const btn = item.querySelector('.voice-use-btn');
+      const itemVoice = btn ? btn.getAttribute('data-voice') : '';
+      item.classList.toggle('selected', itemVoice === voice);
+    }
+
+    // Update current voice display
+    const currentVoiceEl = document.getElementById('cfg-current-voice');
+    currentVoiceEl.textContent = 'Current: ' + voice;
+    currentVoiceEl.style.display = 'block';
+  }
+
   // === PUSH NOTIFICATIONS ===
   function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -1050,6 +1537,7 @@
   }
 
   // === INIT ===
+  loadConfig();
   connectSSE();
   initPush();
   </script>
