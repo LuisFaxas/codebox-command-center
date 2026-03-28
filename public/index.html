@@ -199,9 +199,11 @@ function connectSSE() {
   };
 
   eventSource.onerror = () => {
-    // EventSource automatically reconnects with backoff
-    // Show reconnecting state
     document.getElementById('status').textContent = 'Reconnecting...';
+    // If EventSource gives up (CLOSED state), reconnect manually after 3s
+    if (eventSource.readyState === EventSource.CLOSED) {
+      setTimeout(connectSSE, 3000);
+    }
   };
 }
 
