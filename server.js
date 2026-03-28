@@ -4,6 +4,7 @@ import { join, basename } from 'path';
 import { load as loadConfig, get as getConfig, update as updateConfig, save as saveConfig, getVoices, DATA_DIR, SAMPLES_DIR } from './config.js';
 import { generateSamples, generateCached, getCachePath, clearCache, getSamples, safeName } from './tts.js';
 import { emit, addClient, getClientCount } from './sse.js';
+import { loadPush, getPublicKey, addSubscription, pushToAll } from './push.js';
 
 const PORT = process.env.PORT || 3099;
 
@@ -28,8 +29,9 @@ setInterval(() => {
   }
 }, 60000);
 
-// Initialize config
+// Initialize config and push
 loadConfig();
+loadPush();
 
 // Load HTML from disk
 const htmlPath = join(import.meta.dirname, 'public', 'index.html');
@@ -102,9 +104,9 @@ const server = http.createServer((req, res) => {
     req.on('data', c => body += c);
     req.on('end', () => {
       try {
-        const { voice, template, type } = JSON.parse(body);
+        const { voice, template, type, rate, pitch } = JSON.parse(body);
         const t = type || 'done';
-        updateConfig(t, voice, template);
+        updateConfig(t, voice, template, rate, pitch);
         clearCache(t);
         emit('config:updated', getConfig());
         res.writeHead(200, {'Content-Type': 'application/json'});
@@ -136,6 +138,9 @@ const server = http.createServer((req, res) => {
         // Emit to SSE event bus
         emit('trigger', { type, project, machine, sessionId, timestamp });
 
+        // Fire-and-forget push to all subscribed browsers
+        pushToAll(type, project).catch(() => {});
+
         // Pre-generate cached WAV in background
         if (project) {
           generateCached(type, project, () => {});
@@ -146,6 +151,35 @@ const server = http.createServer((req, res) => {
       } catch(e) {
         res.writeHead(400, {'Content-Type': 'application/json'});
         res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
+      }
+    });
+
+  } else if (pathname === '/sw.js') {
+    try {
+      const swPath = join(import.meta.dirname, 'public', 'sw.js');
+      const sw = readFileSync(swPath, 'utf8');
+      res.writeHead(200, {'Content-Type': 'application/javascript', 'Service-Worker-Allowed': '/'});
+      res.end(sw);
+    } catch(e) {
+      res.writeHead(404); res.end('Not found');
+    }
+
+  } else if (pathname === '/vapid-public-key') {
+    res.writeHead(200, {'Content-Type': 'application/json'});
+    res.end(JSON.stringify({ publicKey: getPublicKey() }));
+
+  } else if (pathname === '/subscribe' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const sub = JSON.parse(body);
+        addSubscription(sub);
+        res.writeHead(200, {'Content-Type': 'application/json'});
+        res.end(JSON.stringify({ ok: true }));
+      } catch(e) {
+        res.writeHead(400, {'Content-Type': 'application/json'});
+        res.end(JSON.stringify({ ok: false, error: e.message }));
       }
     });
 
