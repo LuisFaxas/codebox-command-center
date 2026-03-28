@@ -81,7 +81,10 @@ Plans:
   2. After restarting the server (PM2 restart claude-notify), all sessions from the last 30 minutes are still present with correct state
   3. Sessions transition through working/done/attention/stale states: a session with no activity for 5 minutes shows as stale, and after 30 minutes it disappears
   4. Voice notifications, browser push, and visual toasts continue to fire exactly as they did in v1.0 — no regression
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 04-01-PLAN.md — Create sessions.js module with lifecycle, persistence, TTL + Playwright regression suite
+- [ ] 04-02-PLAN.md — Integrate sessions.js into server.js, update browser client to consume server-side sessions
 
 ### Phase 5: Frontend Rebuild + Session Cards
 **Goal**: Users see a screen-filling command center with rich session cards that answer "Is anything waiting for me?" and "What is each session doing?" at a glance
@@ -129,7 +132,7 @@ Phases execute in numeric order: 4 → 5 → 6 → 7
 | 1. Hook Reliability + Project Identity | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 2. Real-Time Connection + Server Restructure | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 3. Notifications Dashboard | v1.0 | 3/4 | Complete | 2026-03-28 |
-| 4. Session Foundation | v2.0 | 0/? | Not started | - |
+| 4. Session Foundation | v2.0 | 0/2 | Not started | - |
 | 5. Frontend Rebuild + Session Cards | v2.0 | 0/? | Not started | - |
 | 6. Rich Hooks + Interaction | v2.0 | 0/? | Not started | - |
 | 7. Manager AI | v2.0 | 0/? | Not started | - |
