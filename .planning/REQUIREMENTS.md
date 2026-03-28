@@ -25,7 +25,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **RT-01**: SSE replaces HTTP polling for server-to-client push
 - [x] **RT-02**: SSE connection auto-reconnects on disconnect
 - [x] **RT-03**: SSE heartbeat prevents Caddy/proxy timeout (30s interval)
-- [x] **RT-04**: Server uses EventEmitter as internal event bus (decouples trigger from consumers)
+- [x] **RT-04**: Server uses module-scoped event bus (decouples trigger from consumers)
 
 ### Voice Notifications
 
