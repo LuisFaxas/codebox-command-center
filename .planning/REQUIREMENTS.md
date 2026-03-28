@@ -84,30 +84,73 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **UI-03**: Accessible via LAN (192.168.1.122) and Tailscale (100.123.116.23)
 - [x] **UI-04**: Embedded HTML extracted from server.js to separate frontend
 
-## v2 Requirements
+## v2.0 Requirements — Center Console
 
-Deferred to future release. Tracked but not in current roadmap.
+Requirements for v2.0 milestone. Transforms notification tool into unified session command center.
 
-### Extended Features
+### Sessions
 
-- **HIST-01**: Notification history with persistent log (queryable by project/type/time)
-- **DUR-01**: Session duration tracking ("project-x working for 47 minutes")
+- [ ] **SESS-01**: Server tracks all active sessions with project, machine, status, cwd, and last activity timestamp
+- [ ] **SESS-02**: Session state persists across server restarts via JSON file storage
+- [ ] **SESS-03**: Session cards display project name, machine, status badge, duration, current tool, and last message
+- [ ] **SESS-04**: User can click a session card to expand full event history timeline
+- [ ] **SESS-05**: Sessions transition through working/done/attention/stale states based on hook events
+- [ ] **SESS-06**: Stale sessions auto-dim after 5 minutes and auto-remove after 30 minutes
+
+### Hooks (v2)
+
+- [ ] **HOOK-05**: PostToolUse hooks fire for tool activity tracking (which tool, file being edited)
+- [ ] **HOOK-06**: SessionStart hooks register new sessions with the server
+- [ ] **HOOK-07**: Server provides a `/hooks/install` endpoint that generates ready-to-paste config for any machine
+- [ ] **HOOK-08**: Question events display the actual question text in the session card
+
+### UI/Layout (v2)
+
+- [ ] **UI-05**: Dashboard uses full screen with CSS Grid layout optimized for 16" displays
+- [ ] **UI-06**: Voice and template configuration lives in a persistent sidebar panel (not hidden behind icon)
+- [ ] **UI-07**: Frontend split into ES modules loaded via import maps (no build step, no framework)
+- [ ] **UI-08**: Session grid uses progressive disclosure — overview cards expand to show detail
+- [ ] **UI-09**: Dashboard answers two questions at a glance: "Is anything waiting for me?" and "What is each session doing?"
+
+### Manager AI
+
+- [ ] **MGRAI-01**: Passive AI observer summarizes what active sessions are doing on user request
+- [ ] **MGRAI-02**: AI flags sessions that may need attention (long-running, errored, stuck)
+- [ ] **MGRAI-03**: Manager AI is behind a feature flag and off by default
+- [ ] **MGRAI-04**: AI uses cheap model (Haiku) with session snapshots, not per-event calls
+
+### Interaction
+
+- [ ] **INT-01**: Question session cards show a "Focus Terminal" button to jump to the right tmux window
+- [ ] **INT-02**: User can dismiss/acknowledge sessions from the dashboard
+- [ ] **INT-03**: User can copy question text to clipboard from the dashboard
+
+### Notifications (preserved from v1)
+
+- [ ] **NOTIF-01**: Voice notifications fire on done and question events (no regression from v1.0)
+- [ ] **NOTIF-02**: Browser push notifications work when tab is backgrounded
+- [ ] **NOTIF-03**: Visual toast notifications appear with auto-dismiss (8s done, 15s question)
+
+## Future Requirements
+
+Deferred beyond v2.0.
+
 - **PWA-01**: PWA manifest for mobile push notification support
 - **VOICE-06**: Additional voice languages beyond en-US
+- **MGRAI-05**: Manager AI actively relays instructions to sessions (blocked on Claude Code input injection API)
 
 ## Out of Scope
 
-Explicitly excluded. Documented to prevent scope creep.
-
 | Feature | Reason |
 |---------|--------|
-| Email / Slack / SMS notifications | Single-user, always-near-browser premise; adds external dependencies |
-| Real-time code diff viewer | Outside notification scope; massive complexity |
+| Email / Slack / SMS notifications | Single-user, always-near-browser; adds external dependencies |
+| Real-time code diff viewer | Massive complexity, outside core value |
 | Session control (pause/stop Claude) | Claude Code control plane not exposed via HTTP |
 | Multi-user / team support | Single-user system by design |
 | Native mobile app | Browser push sufficient; separate project lifecycle |
-| AI-generated notification summaries | Overkill for status pings; adds LLM API dependency |
 | Cloud-synced settings | CodeBox is the hub; server-side config is single source of truth |
+| Manager AI making decisions | v2.0 is observe-only — AI reports, user decides |
+| Per-event LLM calls | Cost explosion risk ($100+/day); use snapshots with cooldown |
 
 ## Traceability
 
@@ -160,11 +203,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-03 | Phase 3 | Complete |
 | UI-04 | Phase 2 | Complete |
 
-**Coverage:**
+**v1 Coverage:**
 - v1 requirements: 44 total
 - Mapped to phases: 44
 - Unmapped: 0
 
+**v2 Coverage:**
+- v2 requirements: 22 total
+- Mapped to phases: 0 (pending roadmap)
+- Unmapped: 22
+
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-26 after roadmap creation*
+*v2.0 requirements added: 2026-03-28*
