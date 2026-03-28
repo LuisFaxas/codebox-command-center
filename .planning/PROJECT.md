@@ -2,40 +2,37 @@
 
 ## What This Is
 
-A polished, all-in-one web app for Claude Code voice and visual notifications with a live coding dashboard. Runs centrally on CodeBox and serves any connected machine (CodeBox, Lenovo, Mac) via a browser tab. When Claude finishes a response or asks a question, the user hears a spoken notification, sees a browser push notification, and gets a visual toast — all identifying which project triggered it. The dashboard shows real-time status of all active Claude Code sessions across machines.
+A unified command center for all Claude Code sessions across machines. Runs centrally on CodeBox and serves any connected machine (CodeBox, Lenovo, Mac) via a single browser tab. Sessions are the core entity — the dashboard shows what each Claude session is doing, what it asked, and lets the user route attention and respond. Voice, push, and visual notifications fire when Claude finishes or asks a question. Exploring a Manager AI layer that monitors sessions, reports status, and relays instructions.
 
 ## Core Value
 
-Reliable, immediate awareness of Claude Code activity across all machines and projects — the user never misses a "done" or "question" event, even when running 5+ concurrent sessions.
+Complete awareness and control of all Claude Code sessions from one screen — the user sees everything, misses nothing, and can act on any session instantly.
 
 ## Requirements
 
-### Validated
+### Validated (v1.0)
 
-- ✓ HTTP server on CodeBox (port 3099, PM2-managed) — existing
-- ✓ Edge-TTS integration for neural voice synthesis — existing
-- ✓ Claude Code hook system (Stop + PostToolUse/AskUserQuestion) — existing
-- ✓ WAV caching by type and project name — existing
-- ✓ Voice selection UI with audition capability — existing
-- ✓ Multiple male en-US neural voices available — existing
+- ✓ HTTP server on CodeBox (port 3099, PM2-managed)
+- ✓ Edge-TTS integration for neural voice synthesis
+- ✓ Claude Code hook system (Stop + Notification events)
+- ✓ WAV caching by type and project name
+- ✓ Voice selection UI with audition capability
+- ✓ Multiple male en-US neural voices available
+- ✓ SSE-based real-time event push (replaced polling)
+- ✓ Server-side debounce (3s window, keyed by type:sessionId)
+- ✓ Web push notification infrastructure (VAPID keys, service worker)
+- ✓ Session state tracking via SSE events
+- ✓ Visual toast notification system
+- ✓ Project name resolution from folder basename
 
-### Active
+### Active (v2.0 — Center Console)
 
-- [ ] Notifications fire reliably at the right time (not randomly)
-- [ ] Question notifications work (AskUserQuestion hook fires correctly)
-- [ ] Project name auto-resolved from project folder name
-- [ ] Customizable notification templates with `{project}` placeholder
-- [ ] Browser push notifications (works even with tab in background)
-- [ ] Visual toast notifications in the web app
-- [ ] Voice + push + visual all fire together per event
-- [ ] Works from any machine via CodeBox server (Tailscale or LAN)
-- [ ] Live coding dashboard showing all active Claude Code sessions
-- [ ] Dashboard shows project status: working / done / needs attention
-- [ ] Real-time activity feed across all projects
-- [ ] Beautiful, polished single-page web app UI
-- [ ] Voice configuration panel (voice selection, rate, pitch per notification type)
-- [ ] Template editor for notification messages
-- [ ] Replace polling with push-based connection (SSE or WebSocket)
+- [ ] Session-centric command center — sessions are the core entity with deep context
+- [ ] Screen-space-aware UI — fills 16" screen, no wasted space, sidebar config
+- [ ] Manager AI exploration — AI that monitors sessions, reports to user, relays instructions
+- [ ] Cross-machine session aggregation — CodeBox, Lenovo, Mac unified with working remote hooks
+- [ ] Actionable sessions — respond to questions, route attention, see what happened
+- [ ] Notification system preserved — voice + push + toast, no regression from v1.0
 
 ### Out of Scope
 
@@ -93,5 +90,17 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
+## Current Milestone: v2.0 Center Console
+
+**Goal:** Transform from notification tool into unified session command center — one screen for all Claude Code sessions across machines.
+
+**Target features:**
+- Session-centric command center with deep per-session context
+- Screen-space-aware UI (16" screen, sidebar config, no wasted space)
+- Manager AI exploration (session monitoring, status reporting, instruction relay)
+- Cross-machine session aggregation with working remote hooks
+- Actionable sessions (respond, route attention, see history)
+- Notification system preserved (no regression)
+
 ---
-*Last updated: 2026-03-26 after initialization*
+*Last updated: 2026-03-28 — v2.0 Center Console milestone started*
