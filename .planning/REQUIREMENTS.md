@@ -156,6 +156,8 @@ Deferred beyond v2.0.
 
 Which phases cover which requirements. Updated during roadmap creation.
 
+### v1.0 (Phases 1-3)
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | HOOK-01 | Phase 1 | Complete |
@@ -191,28 +193,68 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DASH-03 | Phase 3 | Complete |
 | DASH-04 | Phase 3 | Complete |
 | DASH-05 | Phase 3 | Complete |
-| MULTI-01 | Phase 4 | Pending |
-| MULTI-02 | Phase 4 | Pending |
-| MULTI-03 | Phase 4 | Pending |
-| MULTI-04 | Phase 4 | Pending |
-| MUTE-01 | Phase 4 | Pending |
-| MUTE-02 | Phase 4 | Pending |
-| MUTE-03 | Phase 4 | Pending |
+| MULTI-01 | v1 Phase 4 | Deferred to v2.0 |
+| MULTI-02 | v1 Phase 4 | Deferred to v2.0 |
+| MULTI-03 | v1 Phase 4 | Deferred to v2.0 |
+| MULTI-04 | v1 Phase 4 | Deferred to v2.0 |
+| MUTE-01 | v1 Phase 4 | Deferred to v2.0 |
+| MUTE-02 | v1 Phase 4 | Deferred to v2.0 |
+| MUTE-03 | v1 Phase 4 | Deferred to v2.0 |
 | UI-01 | Phase 3 | Complete |
 | UI-02 | Phase 3 | Complete |
 | UI-03 | Phase 3 | Complete |
 | UI-04 | Phase 2 | Complete |
+
+### v2.0 Center Console (Phases 4-7)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SESS-01 | Phase 4 | Pending |
+| SESS-02 | Phase 4 | Pending |
+| SESS-05 | Phase 4 | Pending |
+| SESS-06 | Phase 4 | Pending |
+| NOTIF-01 | Phase 4 | Pending |
+| NOTIF-02 | Phase 4 | Pending |
+| NOTIF-03 | Phase 4 | Pending |
+| SESS-03 | Phase 5 | Pending |
+| SESS-04 | Phase 5 | Pending |
+| UI-05 | Phase 5 | Pending |
+| UI-06 | Phase 5 | Pending |
+| UI-07 | Phase 5 | Pending |
+| UI-08 | Phase 5 | Pending |
+| UI-09 | Phase 5 | Pending |
+| HOOK-05 | Phase 6 | Pending |
+| HOOK-06 | Phase 6 | Pending |
+| HOOK-07 | Phase 6 | Pending |
+| HOOK-08 | Phase 6 | Pending |
+| INT-01 | Phase 6 | Pending |
+| INT-02 | Phase 6 | Pending |
+| INT-03 | Phase 6 | Pending |
+| MGRAI-01 | Phase 7 | Pending |
+| MGRAI-02 | Phase 7 | Pending |
+| MGRAI-03 | Phase 7 | Pending |
+| MGRAI-04 | Phase 7 | Pending |
 
 **v1 Coverage:**
 - v1 requirements: 44 total
 - Mapped to phases: 44
 - Unmapped: 0
 
-**v2 Coverage:**
-- v2 requirements: 22 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 22
+**v2.0 Coverage:**
+- v2.0 requirements: 25 total
+- Mapped to phases: 25
+- Unmapped: 0
+
+| Category | Count | Phase |
+|----------|-------|-------|
+| Sessions (SESS) | 6 | Phase 4 (4), Phase 5 (2) |
+| Hooks v2 (HOOK) | 4 | Phase 6 |
+| UI/Layout v2 (UI) | 5 | Phase 5 |
+| Manager AI (MGRAI) | 4 | Phase 7 |
+| Interaction (INT) | 3 | Phase 6 |
+| Notifications (NOTIF) | 3 | Phase 4 |
 
 ---
 *Requirements defined: 2026-03-27*
 *v2.0 requirements added: 2026-03-28*
+*v2.0 traceability mapped: 2026-03-28*
