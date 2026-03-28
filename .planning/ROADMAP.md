@@ -61,7 +61,7 @@ Plans:
 Plans:
 - [x] 03-01-PLAN.md — Server-side extensions: web-push module, config rate/pitch, TTS params, service worker
 - [x] 03-02-PLAN.md — Dashboard UI: Grafana-style layout, session grid, activity feed, toast system
-- [ ] 03-03-PLAN.md — Push notification subscription flow with permission banner and graceful fallback
+- [x] 03-03-PLAN.md — Push notification subscription flow with permission banner and graceful fallback
 - [ ] 03-04-PLAN.md — Config slide-out panel: voice selection, template editor, rate/pitch controls
 
 ### Phase 4: Multi-Machine + Polish

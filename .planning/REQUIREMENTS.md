@@ -29,19 +29,19 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Voice Notifications
 
-- [ ] **VOICE-01**: Voice notification plays on Stop event with project name
-- [ ] **VOICE-02**: Voice notification plays on AskUserQuestion event with project name
+- [x] **VOICE-01**: Voice notification plays on Stop event with project name
+- [x] **VOICE-02**: Voice notification plays on AskUserQuestion event with project name
 - [x] **VOICE-03**: Stop and question events use different voice configurations
 - [ ] **VOICE-04**: Voice selection panel with audition per notification type
 - [x] **VOICE-05**: Rate and pitch configurable per notification type
 
 ### Browser Push Notifications
 
-- [ ] **PUSH-01**: Browser push notification fires when tab is in background
-- [ ] **PUSH-02**: Push notification includes project name and event type
+- [x] **PUSH-01**: Browser push notification fires when tab is in background
+- [x] **PUSH-02**: Push notification includes project name and event type
 - [x] **PUSH-03**: Service worker registered for background push delivery
 - [x] **PUSH-04**: VAPID keys generated and persisted to disk (survive PM2 restarts)
-- [ ] **PUSH-05**: User prompted for notification permission on first visit
+- [x] **PUSH-05**: User prompted for notification permission on first visit
 
 ### Visual Notifications
 
@@ -126,16 +126,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RT-02 | Phase 2 | Complete |
 | RT-03 | Phase 2 | Complete |
 | RT-04 | Phase 2 | Complete |
-| VOICE-01 | Phase 3 | Pending |
-| VOICE-02 | Phase 3 | Pending |
+| VOICE-01 | Phase 3 | Complete |
+| VOICE-02 | Phase 3 | Complete |
 | VOICE-03 | Phase 3 | Complete |
 | VOICE-04 | Phase 3 | Pending |
 | VOICE-05 | Phase 3 | Complete |
-| PUSH-01 | Phase 3 | Pending |
-| PUSH-02 | Phase 3 | Pending |
+| PUSH-01 | Phase 3 | Complete |
+| PUSH-02 | Phase 3 | Complete |
 | PUSH-03 | Phase 3 | Complete |
 | PUSH-04 | Phase 3 | Complete |
-| PUSH-05 | Phase 3 | Pending |
+| PUSH-05 | Phase 3 | Complete |
 | VIS-01 | Phase 3 | Complete |
 | VIS-02 | Phase 3 | Complete |
 | VIS-03 | Phase 3 | Complete |
