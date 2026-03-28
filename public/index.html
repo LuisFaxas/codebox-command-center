@@ -625,6 +625,296 @@
 
   <div id="toast-container"></div>
 
-  <script>/* JavaScript in Task 2 */</script>
+  <script>
+  // === STATE ===
+  const sessions = new Map();
+  const activityFeed = [];
+  const MAX_FEED = 50;
+  const MAX_TOASTS = 5;
+  let notifyCount = 0;
+  let localConfig = {};
+
+  // === DOM REFS ===
+  const sessionGrid = document.getElementById('sessionGrid');
+  const feedContainer = document.getElementById('activityFeed');
+  const toastContainer = document.getElementById('toast-container');
+  const connectionDot = document.getElementById('connectionDot');
+  const connectionText = document.getElementById('connectionText');
+  const statSessions = document.getElementById('statSessions');
+  const statEvents = document.getElementById('statEvents');
+  const statAttention = document.getElementById('statAttention');
+  const sessionCount = document.getElementById('sessionCount');
+  const feedCount = document.getElementById('feedCount');
+
+  // === SSE CONNECTION ===
+  let eventSource = null;
+
+  function connectSSE() {
+    if (eventSource) {
+      try { eventSource.close(); } catch(e) {}
+    }
+    eventSource = new EventSource('/events');
+
+    eventSource.addEventListener('trigger', (e) => {
+      const data = JSON.parse(e.data);
+      const { type, project, machine, sessionId, timestamp } = data;
+
+      // Update session
+      const existing = sessions.get(sessionId) || {};
+      sessions.set(sessionId, {
+        project: project || existing.project || 'Unknown',
+        machine: machine || existing.machine || 'unknown',
+        status: type === 'question' ? 'attention' : 'done',
+        lastActivity: Date.now(),
+        startedAt: existing.startedAt || Date.now()
+      });
+
+      // Add to activity feed
+      activityFeed.unshift({
+        type: type || 'done',
+        project: project || 'Unknown',
+        machine: machine || 'unknown',
+        timestamp: timestamp || Date.now()
+      });
+      if (activityFeed.length > MAX_FEED) activityFeed.pop();
+
+      notifyCount++;
+
+      showToast(type || 'done', project || 'Unknown');
+      playVoice(type || 'done', project || '');
+      renderSessions();
+      renderFeed();
+      updateStats();
+    });
+
+    eventSource.addEventListener('session:alive', (e) => {
+      const data = JSON.parse(e.data);
+      const { sessionId, project, machine } = data;
+      const existing = sessions.get(sessionId) || {};
+      sessions.set(sessionId, {
+        project: project || existing.project || 'Unknown',
+        machine: machine || existing.machine || 'unknown',
+        status: 'working',
+        lastActivity: Date.now(),
+        startedAt: existing.startedAt || Date.now()
+      });
+      renderSessions();
+      updateStats();
+    });
+
+    eventSource.addEventListener('config:updated', (e) => {
+      localConfig = JSON.parse(e.data);
+    });
+
+    eventSource.addEventListener('connection:health', () => {
+      // Keepalive received — connection is healthy
+    });
+
+    eventSource.onopen = () => {
+      connectionDot.classList.add('connected');
+      connectionText.textContent = 'Connected';
+    };
+
+    eventSource.onerror = () => {
+      connectionDot.classList.remove('connected');
+      connectionText.textContent = 'Reconnecting...';
+      if (eventSource.readyState === EventSource.CLOSED) {
+        setTimeout(connectSSE, 3000);
+      }
+    };
+  }
+
+  // === SESSION GRID ===
+  function renderSessions() {
+    const sorted = [...sessions.entries()].sort((a, b) => {
+      const order = { attention: 0, working: 1, done: 2, stale: 3 };
+      const diff = (order[a[1].status] || 4) - (order[b[1].status] || 4);
+      if (diff !== 0) return diff;
+      return b[1].lastActivity - a[1].lastActivity;
+    });
+
+    sessionCount.textContent = sorted.length;
+
+    if (sorted.length === 0) {
+      sessionGrid.innerHTML = '<div class="session-grid-empty">' +
+        '<div class="session-grid-empty-icon">&#9673;</div>' +
+        '<div>No active sessions</div>' +
+        '<div style="font-size:0.75rem;margin-top:4px;color:var(--text-muted)">Sessions appear when Claude Code is running</div>' +
+        '</div>';
+      return;
+    }
+
+    sessionGrid.innerHTML = '';
+    for (const [id, session] of sorted) {
+      const card = document.createElement('div');
+      card.className = 'session-card status-' + session.status;
+
+      const badgeClass = session.status === 'attention' ? 'badge-attention' :
+        session.status === 'done' ? 'badge-done' :
+        session.status === 'stale' ? 'badge-stale' : 'badge-working';
+
+      const badgeLabel = session.status === 'attention' ? 'Attention' :
+        session.status === 'done' ? 'Done' :
+        session.status === 'stale' ? 'Stale' : 'Working';
+
+      card.innerHTML =
+        '<div class="session-card-header">' +
+          '<span class="session-project" title="' + escapeHtml(session.project) + '">' + escapeHtml(session.project) + '</span>' +
+          '<span class="session-badge ' + badgeClass + '">' +
+            '<span class="session-badge-dot"></span>' +
+            badgeLabel +
+          '</span>' +
+        '</div>' +
+        '<div class="session-meta">' +
+          '<div class="session-meta-row">' +
+            '<span class="session-machine">' + escapeHtml(session.machine) + '</span>' +
+            '<span class="session-duration">' + formatDuration(session.startedAt) + '</span>' +
+          '</div>' +
+          '<div class="session-meta-row">' +
+            '<span>Last activity: ' + formatRelativeTime(session.lastActivity) + '</span>' +
+          '</div>' +
+        '</div>';
+
+      sessionGrid.appendChild(card);
+    }
+  }
+
+  // === SESSION TTL ===
+  setInterval(() => {
+    const now = Date.now();
+    let changed = false;
+    for (const [id, session] of sessions) {
+      const elapsed = now - session.lastActivity;
+      if (elapsed > 30 * 60 * 1000) {
+        sessions.delete(id);
+        changed = true;
+      } else if (elapsed > 5 * 60 * 1000 && session.status !== 'stale') {
+        session.status = 'stale';
+        changed = true;
+      }
+    }
+    if (changed) {
+      renderSessions();
+      updateStats();
+    }
+  }, 10000);
+
+  // === ACTIVITY FEED ===
+  function renderFeed() {
+    feedCount.textContent = activityFeed.length;
+
+    if (activityFeed.length === 0) {
+      feedContainer.innerHTML = '<div class="feed-empty">Waiting for events...</div>';
+      return;
+    }
+
+    feedContainer.innerHTML = '';
+    for (const item of activityFeed) {
+      const el = document.createElement('div');
+      el.className = 'feed-item type-' + item.type;
+
+      const icon = item.type === 'question' ? '?' : '\u2713';
+      const ts = new Date(item.timestamp);
+      const timeStr = ts.getHours().toString().padStart(2, '0') + ':' +
+        ts.getMinutes().toString().padStart(2, '0') + ':' +
+        ts.getSeconds().toString().padStart(2, '0');
+
+      el.innerHTML =
+        '<span class="feed-icon">' + icon + '</span>' +
+        '<div class="feed-content">' +
+          '<div class="feed-project">' + escapeHtml(item.project) + '</div>' +
+          '<div class="feed-type">' + item.type + '</div>' +
+        '</div>' +
+        '<span class="feed-time">' + timeStr + '</span>';
+
+      feedContainer.appendChild(el);
+    }
+  }
+
+  // === TOAST SYSTEM ===
+  function showToast(type, project) {
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+
+    const icon = type === 'question' ? '?' : '\u2713';
+    const label = type === 'question' ? 'Needs Attention' : 'Done';
+    const now = new Date();
+    const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
+      now.getMinutes().toString().padStart(2, '0') + ':' +
+      now.getSeconds().toString().padStart(2, '0');
+
+    toast.innerHTML =
+      '<span class="toast-icon">' + icon + '</span>' +
+      '<div class="toast-content">' +
+        '<div class="toast-label">' + label + '</div>' +
+        '<div class="toast-project">' + escapeHtml(project) + '</div>' +
+      '</div>' +
+      '<span class="toast-time">' + timeStr + '</span>';
+
+    toastContainer.prepend(toast);
+
+    // Limit max toasts
+    while (toastContainer.children.length > MAX_TOASTS) {
+      toastContainer.lastElementChild.remove();
+    }
+
+    // Auto-dismiss
+    const duration = type === 'question' ? 15000 : 8000;
+    setTimeout(() => {
+      toast.classList.add('toast-out');
+      setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+      }, 300);
+    }, duration);
+  }
+
+  // === VOICE PLAYBACK ===
+  function playVoice(type, project) {
+    try {
+      const audio = new Audio('/notify-wav?type=' + encodeURIComponent(type) + '&project=' + encodeURIComponent(project) + '&t=' + Date.now());
+      audio.play().catch(() => {});
+    } catch(e) {}
+  }
+
+  // === STATS ===
+  function updateStats() {
+    let activeCount = 0;
+    let attentionCount = 0;
+    for (const [, s] of sessions) {
+      if (s.status !== 'stale') activeCount++;
+      if (s.status === 'attention') attentionCount++;
+    }
+    statSessions.textContent = activeCount;
+    statEvents.textContent = notifyCount;
+    statAttention.textContent = attentionCount;
+  }
+
+  // === UTILITY ===
+  function formatRelativeTime(ts) {
+    const elapsed = Math.floor((Date.now() - ts) / 1000);
+    if (elapsed < 5) return 'just now';
+    if (elapsed < 60) return elapsed + 's ago';
+    if (elapsed < 3600) return Math.floor(elapsed / 60) + 'm ago';
+    return Math.floor(elapsed / 3600) + 'h ago';
+  }
+
+  function formatDuration(startTs) {
+    const elapsed = Math.floor((Date.now() - startTs) / 1000);
+    if (elapsed < 60) return elapsed + 's';
+    const mins = Math.floor(elapsed / 60);
+    if (mins < 60) return mins + 'm';
+    const hours = Math.floor(mins / 60);
+    return hours + 'h ' + (mins % 60) + 'm';
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // === INIT ===
+  connectSSE();
+  </script>
 </body>
 </html>
