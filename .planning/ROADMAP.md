@@ -12,7 +12,7 @@ The existing working prototype needs three structural problems fixed before any 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Hook Reliability + Project Identity** - Fix hooks so every event fires exactly once with the correct project name
+- [x] **Phase 1: Hook Reliability + Project Identity** - Fix hooks so every event fires exactly once with the correct project name (completed 2026-03-28)
 - [ ] **Phase 2: Real-Time Connection + Server Restructure** - Replace polling with SSE and extract HTML from server.js
 - [ ] **Phase 3: Notifications Dashboard** - Build the full Vite SPA with voice, push, visual toasts, session grid, and template editor
 - [ ] **Phase 4: Multi-Machine + Polish** - Extend to Lenovo and Mac, add snooze/mute, harden edge-tts
@@ -28,10 +28,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. When Claude asks a question, exactly one "question" notification fires
   3. The notification payload always includes the correct project folder basename (never empty string)
   4. Hooks work when Claude Code is launched from any subdirectory of a project
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 01-01-PLAN.md — Rewrite hook script + update server /trigger endpoint with POST and debounce
-- [ ] 01-02-PLAN.md — Configure hooks in settings.json + integration test + human verification
+- [x] 01-02-PLAN.md — Configure hooks in settings.json + integration test + human verification
 
 ### Phase 2: Real-Time Connection + Server Restructure
 **Goal**: Server delivers events to the browser instantly via SSE with no polling, and codebase is structured for maintainability
@@ -74,7 +74,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Hook Reliability + Project Identity | 0/2 | Planning complete | - |
+| 1. Hook Reliability + Project Identity | 2/2 | Complete   | 2026-03-28 |
 | 2. Real-Time Connection + Server Restructure | 0/? | Not started | - |
 | 3. Notifications Dashboard | 0/? | Not started | - |
 | 4. Multi-Machine + Polish | 0/? | Not started | - |

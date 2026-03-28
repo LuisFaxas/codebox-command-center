@@ -18,7 +18,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **PROJ-01**: Project name auto-resolved from folder basename (cleaned, title-cased)
 - [x] **PROJ-02**: Project name included in every notification (voice, push, toast)
-- [ ] **PROJ-03**: Project name resolution works from CodeBox, Lenovo, and Mac
+- [x] **PROJ-03**: Project name resolution works from CodeBox, Lenovo, and Mac
 
 ### Real-Time Connection
 
@@ -121,7 +121,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HOOK-04 | Phase 1 | Complete |
 | PROJ-01 | Phase 1 | Complete |
 | PROJ-02 | Phase 1 | Complete |
-| PROJ-03 | Phase 1 | Pending |
+| PROJ-03 | Phase 1 | Complete |
 | RT-01 | Phase 2 | Pending |
 | RT-02 | Phase 2 | Pending |
 | RT-03 | Phase 2 | Pending |
