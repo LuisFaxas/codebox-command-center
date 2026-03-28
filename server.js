@@ -1,46 +1,14 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const { exec } = require('child_process');
-const url = require('url');
+import http from 'http';
+import { readFileSync, existsSync, statSync, writeFileSync, utimesSync } from 'fs';
+import { join, basename } from 'path';
+import { load as loadConfig, get as getConfig, update as updateConfig, save as saveConfig, getVoices, DATA_DIR, SAMPLES_DIR } from './config.js';
+import { generateSamples, generateCached, getCachePath, clearCache, getSamples, safeName } from './tts.js';
+import { emit, addClient, getClientCount } from './sse.js';
 
 const PORT = process.env.PORT || 3099;
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-const TRIGGER_FILE = path.join(DATA_DIR, 'trigger.json');
-const SAMPLES_DIR = path.join(DATA_DIR, 'samples');
-const CACHE_DIR = path.join(DATA_DIR, 'cache');
-const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
+const TRIGGER_FILE = join(DATA_DIR, 'trigger.json');
 
-const VOICES = [
-  'en-US-GuyNeural',
-  'en-US-EricNeural',
-  'en-US-ChristopherNeural',
-  'en-US-RogerNeural',
-  'en-US-SteffanNeural',
-  'en-US-AndrewNeural',
-  'en-US-BrianNeural',
-];
-
-let lastTrigger = 0;
-
-// Config: voice + template per type, persisted to disk
-let config = {
-  done: { voice: 'en-US-GuyNeural', template: 'Done with {project}' },
-  question: { voice: 'en-US-GuyNeural', template: 'I need your attention at {project}' },
-};
-
-// Ensure directories exist
-[DATA_DIR, SAMPLES_DIR, CACHE_DIR].forEach(dir => {
-  fs.mkdirSync(dir, { recursive: true });
-});
-
-try {
-  if (fs.existsSync(CONFIG_FILE)) {
-    config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-  }
-} catch(e) {}
-
-// Debounce map: prevents duplicate triggers within window (per D-10, D-11)
+// Debounce map: prevents duplicate triggers within window
 const debounceMap = new Map();
 const DEBOUNCE_MS = 3000;
 
@@ -53,7 +21,7 @@ function isDuplicate(type, project, sessionId) {
   return false;
 }
 
-// Cleanup stale debounce entries every 60 seconds (prevents memory leak on long-lived server)
+// Cleanup stale debounce entries every 60 seconds
 setInterval(() => {
   const cutoff = Date.now() - 30000;
   for (const [key, ts] of debounceMap) {
@@ -61,76 +29,10 @@ setInterval(() => {
   }
 }, 60000);
 
-function saveConfig() {
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
-}
+let lastTrigger = 0;
 
-function getSamples() {
-  try {
-    return fs.readdirSync(SAMPLES_DIR).filter(f => f.endsWith('.wav') && f.includes('--')).sort();
-  } catch(e) { return []; }
-}
-
-function generateSamples(text, cb) {
-  try {
-    fs.readdirSync(SAMPLES_DIR).filter(f => f.endsWith('.wav')).forEach(f => {
-      fs.unlinkSync(path.join(SAMPLES_DIR, f));
-    });
-  } catch(e) {}
-
-  let done = 0;
-  const total = VOICES.length;
-  const safeText = text.replace(/'/g, "'\\''");
-
-  VOICES.forEach(voice => {
-    const shortName = voice.replace('en-US-','').replace('Neural','').toLowerCase();
-    const outFile = path.join(SAMPLES_DIR, `${shortName}--${voice}.wav`);
-    exec(
-      `edge-tts --voice "${voice}" --rate="-5%" --pitch="-10Hz" --text '${safeText}' --write-media "${outFile}"`,
-      { timeout: 15000 },
-      (err) => {
-        done++;
-        if (done === total && cb) cb();
-      }
-    );
-  });
-}
-
-function safeName(str) {
-  return str.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 80);
-}
-
-function getCachePath(type, project) {
-  return path.join(CACHE_DIR, `${type}--${safeName(project)}.wav`);
-}
-
-function generateCached(type, project, cb) {
-  const cachePath = getCachePath(type, project);
-  if (fs.existsSync(cachePath)) {
-    return cb(null, cachePath);
-  }
-
-  const cfg = config[type] || config.done;
-  const text = cfg.template.replace(/\{project\}/g, project);
-  const safeText = text.replace(/'/g, "'\\''");
-
-  exec(
-    `edge-tts --voice "${cfg.voice}" --rate="-5%" --pitch="-10Hz" --text '${safeText}' --write-media "${cachePath}"`,
-    { timeout: 15000 },
-    (err) => {
-      if (err) return cb(err);
-      cb(null, cachePath);
-    }
-  );
-}
-
-function clearCache(type) {
-  try {
-    fs.readdirSync(CACHE_DIR).filter(f => f.startsWith(type + '--') && f.endsWith('.wav')).forEach(f => {
-      fs.unlinkSync(path.join(CACHE_DIR, f));
-    });
-  } catch(e) {}
-}
+// Initialize config
+loadConfig();
 
 const html = `<!DOCTYPE html>
 <html><head><title>Claude Notify</title></head>
@@ -325,46 +227,54 @@ poll();
 </body></html>`;
 
 const server = http.createServer((req, res) => {
-  const parsed = url.parse(req.url, true);
+  const parsedUrl = new URL(req.url, 'http://localhost');
+  const pathname = parsedUrl.pathname;
+  const params = parsedUrl.searchParams;
 
-  if (parsed.pathname === '/check') {
+  if (pathname === '/events') {
+    const lastEventId = req.headers['last-event-id'] || null;
+    addClient(req, res, lastEventId);
+    return;
+
+  } else if (pathname === '/check') {
+    // Temporary: kept for backward compat with embedded HTML poll loop
     let notify = false;
     let type = 'done';
     let project = '';
     try {
-      const stat = fs.statSync(TRIGGER_FILE);
+      const stat = statSync(TRIGGER_FILE);
       if (stat.mtimeMs > lastTrigger) {
         lastTrigger = stat.mtimeMs;
         notify = true;
         try {
-          const content = JSON.parse(fs.readFileSync(TRIGGER_FILE, 'utf8'));
+          const content = JSON.parse(readFileSync(TRIGGER_FILE, 'utf8'));
           type = content.type || 'done';
           project = content.project || '';
         } catch(e) {}
       }
     } catch(e) {}
-    const wav = notify ? fs.existsSync(getCachePath(type, project || 'default')) || true : false;
+    const wav = notify ? existsSync(getCachePath(type, project || 'default')) || true : false;
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({ notify, wav, type, project }));
 
-  } else if (parsed.pathname === '/config') {
+  } else if (pathname === '/config') {
     res.writeHead(200, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify(config));
+    res.end(JSON.stringify(getConfig()));
 
-  } else if (parsed.pathname === '/samples') {
+  } else if (pathname === '/samples') {
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify(getSamples()));
 
-  } else if (parsed.pathname === '/notify-wav') {
-    const type = parsed.query.type || 'done';
-    const project = parsed.query.project || 'project';
+  } else if (pathname === '/notify-wav') {
+    const type = params.get('type') || 'done';
+    const project = params.get('project') || 'project';
     generateCached(type, project, (err, wavPath) => {
-      if (err || !wavPath || !fs.existsSync(wavPath)) {
+      if (err || !wavPath || !existsSync(wavPath)) {
         res.writeHead(404); res.end('Not generated');
         return;
       }
       try {
-        const data = fs.readFileSync(wavPath);
+        const data = readFileSync(wavPath);
         res.writeHead(200, {'Content-Type': 'audio/wav', 'Content-Length': data.length, 'Cache-Control': 'no-cache'});
         res.end(data);
       } catch(e) {
@@ -372,18 +282,18 @@ const server = http.createServer((req, res) => {
       }
     });
 
-  } else if (parsed.pathname.startsWith('/wav/')) {
-    const file = path.basename(parsed.pathname.replace('/wav/', ''));
-    const filePath = path.join(SAMPLES_DIR, file);
+  } else if (pathname.startsWith('/wav/')) {
+    const file = basename(pathname.replace('/wav/', ''));
+    const filePath = join(SAMPLES_DIR, file);
     try {
-      const data = fs.readFileSync(filePath);
+      const data = readFileSync(filePath);
       res.writeHead(200, {'Content-Type': 'audio/wav', 'Content-Length': data.length});
       res.end(data);
     } catch(e) {
       res.writeHead(404); res.end('Not found');
     }
 
-  } else if (parsed.pathname === '/generate' && req.method === 'POST') {
+  } else if (pathname === '/generate' && req.method === 'POST') {
     let body = '';
     req.on('data', c => body += c);
     req.on('end', () => {
@@ -399,16 +309,16 @@ const server = http.createServer((req, res) => {
       }
     });
 
-  } else if (parsed.pathname === '/select' && req.method === 'POST') {
+  } else if (pathname === '/select' && req.method === 'POST') {
     let body = '';
     req.on('data', c => body += c);
     req.on('end', () => {
       try {
         const { voice, template, type } = JSON.parse(body);
         const t = type || 'done';
-        config[t] = { voice, template };
-        saveConfig();
+        updateConfig(t, voice, template);
         clearCache(t);
+        emit('config:updated', getConfig());
         res.writeHead(200, {'Content-Type': 'application/json'});
         res.end(JSON.stringify({ ok: true, voice, template, type: t }));
       } catch(e) {
@@ -417,7 +327,7 @@ const server = http.createServer((req, res) => {
       }
     });
 
-  } else if (parsed.pathname === '/trigger' && req.method === 'POST') {
+  } else if (pathname === '/trigger' && req.method === 'POST') {
     let body = '';
     req.on('data', c => {
       body += c;
@@ -435,10 +345,13 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        // Write trigger.json for backward compat with browser /check polling
+        // Emit to SSE event bus instead of writing trigger.json
+        emit('trigger', { type, project, machine, sessionId, timestamp });
+
+        // Write trigger.json for backward compat with browser /check polling (temporary)
         const now = new Date();
-        fs.writeFileSync(TRIGGER_FILE, JSON.stringify({ type, project, machine, sessionId, timestamp }));
-        fs.utimesSync(TRIGGER_FILE, now, now);
+        writeFileSync(TRIGGER_FILE, JSON.stringify({ type, project, machine, sessionId, timestamp }));
+        utimesSync(TRIGGER_FILE, now, now);
 
         // Pre-generate cached WAV in background
         if (project) {
@@ -453,10 +366,10 @@ const server = http.createServer((req, res) => {
       }
     });
 
-  } else if (parsed.pathname === '/trigger' && req.method === 'GET') {
+  } else if (pathname === '/trigger' && req.method === 'GET') {
     // Backward compat: old hooks still using GET with query params
-    const type = parsed.query.type || 'done';
-    const project = parsed.query.project || '';
+    const type = params.get('type') || 'done';
+    const project = params.get('project') || '';
 
     if (isDuplicate(type, project, 'legacy')) {
       res.writeHead(200, {'Content-Type': 'application/json'});
@@ -464,9 +377,14 @@ const server = http.createServer((req, res) => {
       return;
     }
 
+    // Emit to SSE event bus
+    emit('trigger', { type, project });
+
+    // Write trigger.json for backward compat (temporary)
     const now = new Date();
-    fs.writeFileSync(TRIGGER_FILE, JSON.stringify({ type, project }));
-    fs.utimesSync(TRIGGER_FILE, now, now);
+    writeFileSync(TRIGGER_FILE, JSON.stringify({ type, project }));
+    utimesSync(TRIGGER_FILE, now, now);
+
     if (project) {
       generateCached(type, project, () => {});
     }
@@ -480,5 +398,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Claude voice notification server running on port ${PORT}`);
+  console.log('Voice notification server running on port ' + PORT);
 });

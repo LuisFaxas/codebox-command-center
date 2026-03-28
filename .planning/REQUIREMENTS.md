@@ -22,10 +22,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Real-Time Connection
 
-- [ ] **RT-01**: SSE replaces HTTP polling for server-to-client push
-- [ ] **RT-02**: SSE connection auto-reconnects on disconnect
-- [ ] **RT-03**: SSE heartbeat prevents Caddy/proxy timeout (30s interval)
-- [ ] **RT-04**: Server uses EventEmitter as internal event bus (decouples trigger from consumers)
+- [x] **RT-01**: SSE replaces HTTP polling for server-to-client push
+- [x] **RT-02**: SSE connection auto-reconnects on disconnect
+- [x] **RT-03**: SSE heartbeat prevents Caddy/proxy timeout (30s interval)
+- [x] **RT-04**: Server uses EventEmitter as internal event bus (decouples trigger from consumers)
 
 ### Voice Notifications
 
@@ -122,10 +122,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROJ-01 | Phase 1 | Complete |
 | PROJ-02 | Phase 1 | Complete |
 | PROJ-03 | Phase 1 | Complete |
-| RT-01 | Phase 2 | Pending |
-| RT-02 | Phase 2 | Pending |
-| RT-03 | Phase 2 | Pending |
-| RT-04 | Phase 2 | Pending |
+| RT-01 | Phase 2 | Complete |
+| RT-02 | Phase 2 | Complete |
+| RT-03 | Phase 2 | Complete |
+| RT-04 | Phase 2 | Complete |
 | VOICE-01 | Phase 3 | Pending |
 | VOICE-02 | Phase 3 | Pending |
 | VOICE-03 | Phase 3 | Pending |
