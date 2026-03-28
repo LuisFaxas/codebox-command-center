@@ -1,213 +1,630 @@
 <!DOCTYPE html>
-<html><head><title>Claude Notify</title></head>
-<body style="background:#0d0d0d;color:#e0e0e0;font-family:system-ui;margin:0;padding:2rem">
-<div style="max-width:700px;margin:0 auto">
-  <h1 style="font-size:1.8rem;letter-spacing:2px;color:#c0392b;margin-bottom:0.5rem">CLAUDE VOICE PICKER</h1>
-  <p style="opacity:0.5;margin-bottom:1.5rem">Set voice and template for each notification type. Use {project} in the template for the project name.</p>
-
-  <div style="display:flex;gap:0;margin-bottom:1.5rem">
-    <button id="tab-done" onclick="switchTab('done')"
-      style="flex:1;padding:0.75rem;font-size:1rem;font-weight:bold;cursor:pointer;border:2px solid #c0392b;border-radius:8px 0 0 8px;background:#c0392b;color:#fff;transition:all 0.2s">
-      DONE (Stop)
-    </button>
-    <button id="tab-question" onclick="switchTab('question')"
-      style="flex:1;padding:0.75rem;font-size:1rem;font-weight:bold;cursor:pointer;border:2px solid #c0392b;border-radius:0 8px 8px 0;background:transparent;color:#c0392b;transition:all 0.2s">
-      QUESTION (Ask)
-    </button>
-  </div>
-
-  <div style="margin-bottom:1rem">
-    <label style="font-size:0.85rem;opacity:0.6;display:block;margin-bottom:0.25rem">Template (use {project} for project name):</label>
-    <input id="template" type="text" value=""
-      style="width:100%;padding:0.75rem 1rem;font-size:1.1rem;background:#1a1a1a;color:#fff;border:2px solid #333;border-radius:8px;outline:none;box-sizing:border-box">
-  </div>
-
-  <div style="margin-bottom:0.75rem">
-    <label style="font-size:0.85rem;opacity:0.6;display:block;margin-bottom:0.25rem">Preview text (for voice audition):</label>
-    <div style="display:flex;gap:0.5rem">
-      <input id="msg" type="text" value=""
-        style="flex:1;padding:0.75rem 1rem;font-size:1.1rem;background:#1a1a1a;color:#fff;border:2px solid #333;border-radius:8px;outline:none"
-        onkeydown="if(event.key==='Enter')generate()">
-      <button onclick="generate()" id="genBtn"
-        style="padding:0.75rem 1.5rem;background:#c0392b;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:bold;min-width:120px">
-        GENERATE
-      </button>
-    </div>
-  </div>
-
-  <div id="current-selection" style="margin-bottom:1rem;padding:0.5rem 1rem;background:#1a1a1a;border-radius:6px;font-size:0.85rem;opacity:0.6"></div>
-
-  <div id="voices" style="display:flex;flex-direction:column;gap:0.75rem"></div>
-
-  <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid #333">
-    <p id="status" style="font-size:1.1rem;opacity:0.7">Pick a tab, set template, generate voices</p>
-    <p id="count" style="font-size:0.85rem;opacity:0.4">0 notifications played</p>
-  </div>
-</div>
-<script>
-let count = 0;
-let audio = null;
-let currentTab = 'done';
-let serverConfig = {};
-
-async function loadConfig() {
-  const res = await fetch('/config');
-  serverConfig = await res.json();
-  applyTab();
-}
-
-function switchTab(tab) {
-  currentTab = tab;
-  document.getElementById('tab-done').style.background = tab === 'done' ? '#c0392b' : 'transparent';
-  document.getElementById('tab-done').style.color = tab === 'done' ? '#fff' : '#c0392b';
-  document.getElementById('tab-question').style.background = tab === 'question' ? '#c0392b' : 'transparent';
-  document.getElementById('tab-question').style.color = tab === 'question' ? '#fff' : '#c0392b';
-  applyTab();
-}
-
-function applyTab() {
-  const cfg = serverConfig[currentTab] || {};
-  const template = cfg.template || (currentTab === 'done' ? 'Done with {project}' : 'I need your attention at {project}');
-  document.getElementById('template').value = template;
-  document.getElementById('msg').value = template.replace(/\{project\}/g, 'My Project');
-  document.getElementById('voices').innerHTML = '';
-  const el = document.getElementById('current-selection');
-  const voice = cfg.voice || 'not set';
-  el.textContent = 'Current voice: ' + voice + ' | Type: ' + currentTab;
-}
-
-async function generate() {
-  const text = document.getElementById('msg').value.trim();
-  if (!text) return;
-
-  const btn = document.getElementById('genBtn');
-  btn.textContent = 'GENERATING...';
-  btn.disabled = true;
-  document.getElementById('voices').innerHTML = '<p style="opacity:0.5">Generating all voices...</p>';
-
-  const res = await fetch('/generate', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ text })
-  });
-  const data = await res.json();
-
-  btn.textContent = 'GENERATE';
-  btn.disabled = false;
-
-  if (data.ok) loadVoices();
-}
-
-async function loadVoices() {
-  const res = await fetch('/samples');
-  const samples = await res.json();
-  const container = document.getElementById('voices');
-  container.innerHTML = '';
-
-  samples.forEach(function(name) {
-    const parts = name.replace('.wav','').split('--');
-    const shortName = parts[0];
-    const fullVoice = parts[1] || shortName;
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:#1a1a1a;border-radius:8px;border:2px solid transparent;transition:all 0.2s';
-
-    const cfg = serverConfig[currentTab] || {};
-    if (cfg.voice === fullVoice) row.style.borderColor = '#c0392b';
-
-    const playBtn = document.createElement('button');
-    playBtn.textContent = 'Play';
-    playBtn.style.cssText = 'padding:0.4rem 1rem;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.9rem;min-width:60px';
-    playBtn.onclick = function(e) { e.stopPropagation(); playVoice(name); };
-
-    const nameSpan = document.createElement('span');
-    nameSpan.style.cssText = 'flex:1;font-size:1rem;font-weight:500';
-    nameSpan.textContent = shortName;
-
-    const voiceSpan = document.createElement('span');
-    voiceSpan.style.cssText = 'font-size:0.8rem;opacity:0.4';
-    voiceSpan.textContent = fullVoice;
-
-    const useBtn = document.createElement('button');
-    useBtn.textContent = 'USE THIS';
-    useBtn.style.cssText = 'padding:0.4rem 1rem;background:#c0392b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.9rem;font-weight:bold';
-    useBtn.onclick = function(e) { e.stopPropagation(); selectVoice(fullVoice, row); };
-
-    row.appendChild(playBtn);
-    row.appendChild(nameSpan);
-    row.appendChild(voiceSpan);
-    row.appendChild(useBtn);
-    container.appendChild(row);
-  });
-}
-
-function playVoice(name) {
-  if (audio) { audio.pause(); audio = null; }
-  audio = new Audio('/wav/' + name + '?t=' + Date.now());
-  audio.play();
-}
-
-async function selectVoice(voice, el) {
-  document.querySelectorAll('#voices > div').forEach(function(d) { d.style.borderColor = 'transparent'; });
-  if (el) el.style.borderColor = '#c0392b';
-
-  const template = document.getElementById('template').value.trim();
-  const res = await fetch('/select', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ voice: voice, template: template, type: currentTab })
-  });
-  const data = await res.json();
-  if (data.ok) {
-    serverConfig[currentTab] = { voice: voice, template: template };
-    document.getElementById('status').textContent = 'Selected ' + voice + ' for ' + currentTab.toUpperCase() + '! Cache cleared.';
-    document.getElementById('current-selection').textContent = 'Current voice: ' + voice + ' | Type: ' + currentTab;
-  }
-}
-
-// SSE connection — replaces polling (per D-01, D-07)
-let eventSource = null;
-
-function connectSSE() {
-  eventSource = new EventSource('/events');
-
-  eventSource.addEventListener('trigger', (e) => {
-    const data = JSON.parse(e.data);
-    count++;
-    if (audio) { audio.pause(); audio = null; }
-    audio = new Audio('/notify-wav?type=' + encodeURIComponent(data.type || 'done') + '&project=' + encodeURIComponent(data.project || '') + '&t=' + Date.now());
-    audio.play();
-    const label = data.type === 'question' ? 'Question' : 'Done';
-    const proj = data.project ? ' (' + data.project + ')' : '';
-    document.getElementById('status').textContent = label + proj + ' — ' + new Date().toLocaleTimeString();
-    document.getElementById('count').textContent = count + ' notifications played';
-    setTimeout(function() {
-      document.getElementById('status').textContent = 'Listening for notifications...';
-    }, 4000);
-  });
-
-  eventSource.addEventListener('config:updated', (e) => {
-    serverConfig = JSON.parse(e.data);
-    applyTab();
-  });
-
-  eventSource.addEventListener('connection:health', (e) => {
-    // Server keepalive — connection is healthy
-  });
-
-  eventSource.onopen = () => {
-    document.getElementById('status').textContent = 'Connected — listening for notifications...';
-  };
-
-  eventSource.onerror = () => {
-    document.getElementById('status').textContent = 'Reconnecting...';
-    // If EventSource gives up (CLOSED state), reconnect manually after 3s
-    if (eventSource.readyState === EventSource.CLOSED) {
-      setTimeout(connectSSE, 3000);
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Notifications</title>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-card: #1c2128;
+      --bg-input: #0d1117;
+      --border: #30363d;
+      --border-active: #484f58;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --accent-done: #3fb950;
+      --accent-question: #f0883e;
+      --accent-working: #58a6ff;
+      --accent-danger: #f85149;
+      --glow-done: 0 0 12px rgba(63, 185, 80, 0.3);
+      --glow-question: 0 0 12px rgba(240, 136, 62, 0.3);
+      --glow-working: 0 0 12px rgba(88, 166, 255, 0.3);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+      --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-  };
-}
 
-loadConfig();
-connectSSE();
-</script>
-</body></html>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      overflow: hidden;
+    }
+
+    /* === HEADER === */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 100;
+    }
+
+    .header-title {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 3px;
+      color: var(--text-primary);
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .connection-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-danger);
+      transition: background 0.3s;
+    }
+
+    .connection-dot.connected {
+      background: var(--accent-done);
+      box-shadow: 0 0 6px rgba(63, 185, 80, 0.5);
+    }
+
+    .header-gear {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .header-gear:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    /* === DASHBOARD LAYOUT === */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 16px;
+      height: 100vh;
+      padding: 68px 20px 20px 20px;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 0;
+    }
+
+    /* === STATS BAR === */
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .stat-card {
+      flex: 1;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+    }
+
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .stat-value.accent-working { color: var(--accent-working); }
+    .stat-value.accent-done { color: var(--accent-done); }
+    .stat-value.accent-question { color: var(--accent-question); }
+    .stat-value.accent-muted { color: var(--text-muted); }
+
+    /* === SESSION GRID === */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .section-count {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .session-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+      padding-right: 4px;
+    }
+
+    .session-grid::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .session-grid::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .session-grid::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    .session-grid-empty {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .session-grid-empty-icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      opacity: 0.4;
+    }
+
+    /* === SESSION CARDS === */
+    .session-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      transition: border-color 0.3s, box-shadow 0.3s, opacity 0.3s;
+    }
+
+    .session-card.status-working {
+      border-left-color: var(--accent-working);
+      box-shadow: var(--glow-working);
+    }
+
+    .session-card.status-done {
+      border-left-color: var(--accent-done);
+      box-shadow: var(--glow-done);
+    }
+
+    .session-card.status-attention {
+      border-left-color: var(--accent-question);
+      box-shadow: var(--glow-question);
+      animation: pulse-attention 2s ease-in-out infinite;
+    }
+
+    .session-card.status-stale {
+      opacity: 0.45;
+      border-left-color: var(--border);
+    }
+
+    @keyframes pulse-attention {
+      0%, 100% { box-shadow: var(--glow-question); }
+      50% { box-shadow: 0 0 20px rgba(240, 136, 62, 0.5); }
+    }
+
+    .session-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .session-project {
+      font-size: 0.95rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .session-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .session-badge.badge-working {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent-working);
+    }
+
+    .session-badge.badge-done {
+      background: rgba(63, 185, 80, 0.15);
+      color: var(--accent-done);
+    }
+
+    .session-badge.badge-attention {
+      background: rgba(240, 136, 62, 0.15);
+      color: var(--accent-question);
+    }
+
+    .session-badge.badge-stale {
+      background: rgba(110, 118, 129, 0.15);
+      color: var(--text-muted);
+    }
+
+    .session-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .badge-working .session-badge-dot { background: var(--accent-working); }
+    .badge-done .session-badge-dot { background: var(--accent-done); }
+    .badge-attention .session-badge-dot { background: var(--accent-question); }
+    .badge-stale .session-badge-dot { background: var(--text-muted); }
+
+    .session-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .session-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .session-machine {
+      color: var(--text-muted);
+    }
+
+    .session-duration {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* === ACTIVITY FEED (RIGHT COLUMN) === */
+    .activity-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .activity-feed {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-right: 4px;
+    }
+
+    .activity-feed::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .activity-feed::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .activity-feed::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    .feed-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      transition: background 0.2s;
+    }
+
+    .feed-item:hover {
+      background: var(--bg-card);
+    }
+
+    .feed-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .feed-item.type-done .feed-icon {
+      background: rgba(63, 185, 80, 0.15);
+      color: var(--accent-done);
+    }
+
+    .feed-item.type-question .feed-icon {
+      background: rgba(240, 136, 62, 0.15);
+      color: var(--accent-question);
+    }
+
+    .feed-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .feed-project {
+      font-weight: 600;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feed-type {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: capitalize;
+    }
+
+    .feed-time {
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .feed-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    /* === TOAST SYSTEM === */
+    #toast-container {
+      position: fixed;
+      top: 64px;
+      right: 20px;
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      transform: translateX(40px);
+      animation: toast-in 0.3s ease forwards;
+      pointer-events: auto;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .toast.toast-out {
+      animation: toast-out 0.3s ease forwards;
+    }
+
+    .toast-done {
+      border-left-color: var(--accent-done);
+    }
+
+    .toast-question {
+      border-left-color: var(--accent-question);
+    }
+
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateX(40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes toast-out {
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(40px); }
+    }
+
+    .toast-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .toast-done .toast-icon {
+      background: rgba(63, 185, 80, 0.15);
+      color: var(--accent-done);
+    }
+
+    .toast-question .toast-icon {
+      background: rgba(240, 136, 62, 0.15);
+      color: var(--accent-question);
+    }
+
+    .toast-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .toast-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .toast-project {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .toast-time {
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 900px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+
+      .activity-panel {
+        max-height: 300px;
+      }
+
+      #toast-container {
+        width: 280px;
+        right: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <span class="header-title">Claude Notifications</span>
+    <div class="header-right">
+      <div class="connection-status">
+        <span class="connection-dot" id="connectionDot"></span>
+        <span id="connectionText">Connecting...</span>
+      </div>
+      <button class="header-gear" id="gearBtn" title="Settings">&#9881;</button>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <div class="main-content">
+      <div class="stats-bar">
+        <div class="stat-card">
+          <span class="stat-label">Active Sessions</span>
+          <span class="stat-value accent-working" id="statSessions">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Events Today</span>
+          <span class="stat-value accent-done" id="statEvents">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Attention</span>
+          <span class="stat-value accent-question" id="statAttention">0</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-header">
+          <span class="section-title">Sessions</span>
+          <span class="section-count" id="sessionCount">0</span>
+        </div>
+        <div class="session-grid" id="sessionGrid">
+          <div class="session-grid-empty">
+            <div class="session-grid-empty-icon">&#9673;</div>
+            <div>No active sessions</div>
+            <div style="font-size:0.75rem;margin-top:4px;color:var(--text-muted)">Sessions appear when Claude Code is running</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="activity-panel">
+      <div class="section-header">
+        <span class="section-title">Activity Feed</span>
+        <span class="section-count" id="feedCount">0</span>
+      </div>
+      <div class="activity-feed" id="activityFeed">
+        <div class="feed-empty">Waiting for events...</div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <script>/* JavaScript in Task 2 */</script>
+</body>
+</html>
