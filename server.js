@@ -63,7 +63,7 @@ const server = http.createServer((req, res) => {
       }
       try {
         const data = readFileSync(wavPath);
-        res.writeHead(200, {'Content-Type': 'audio/wav', 'Content-Length': data.length, 'Cache-Control': 'no-cache'});
+        res.writeHead(200, {'Content-Type': 'audio/mpeg', 'Content-Length': data.length, 'Cache-Control': 'no-cache'});
         res.end(data);
       } catch(e) {
         res.writeHead(500); res.end('Read error');
