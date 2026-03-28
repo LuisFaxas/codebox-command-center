@@ -57,8 +57,12 @@ Plans:
   3. The dashboard shows real-time status (working / done / needs attention) for every active Claude Code session
   4. The user can edit notification message templates with `{project}` placeholder and changes take effect immediately across voice, push, and toast
   5. The user can configure voice selection, rate, and pitch separately for done and question events
-**Plans**: TBD
-**UI hint**: yes
+**Plans:** 4 plans
+Plans:
+- [ ] 03-01-PLAN.md — Server-side extensions: web-push module, config rate/pitch, TTS params, service worker
+- [ ] 03-02-PLAN.md — Dashboard UI: Grafana-style layout, session grid, activity feed, toast system
+- [ ] 03-03-PLAN.md — Push notification subscription flow with permission banner and graceful fallback
+- [ ] 03-04-PLAN.md — Config slide-out panel: voice selection, template editor, rate/pitch controls
 
 ### Phase 4: Multi-Machine + Polish
 **Goal**: Lenovo and Mac hooks report to CodeBox, the dashboard aggregates all machines, and the system handles edge cases gracefully
@@ -79,5 +83,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Hook Reliability + Project Identity | 2/2 | Complete   | 2026-03-28 |
 | 2. Real-Time Connection + Server Restructure | 0/2 | Not started | - |
-| 3. Notifications Dashboard | 0/? | Not started | - |
+| 3. Notifications Dashboard | 0/4 | Not started | - |
 | 4. Multi-Machine + Polish | 0/? | Not started | - |
