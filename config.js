@@ -18,8 +18,8 @@ export const CACHE_DIR = join(DATA_DIR, 'cache');
 const CONFIG_FILE = join(DATA_DIR, 'config.json');
 
 const defaults = {
-  done: { voice: 'en-US-GuyNeural', template: 'Done with {project}' },
-  question: { voice: 'en-US-GuyNeural', template: 'I need your attention at {project}' },
+  done: { voice: 'en-US-GuyNeural', template: 'Done with {project}', rate: '+0%', pitch: '+0Hz' },
+  question: { voice: 'en-US-GuyNeural', template: 'I need your attention at {project}', rate: '+0%', pitch: '+0Hz' },
 };
 
 let config = { ...defaults };
@@ -33,6 +33,9 @@ export function load() {
       config = JSON.parse(readFileSync(CONFIG_FILE, 'utf8'));
     }
   } catch(e) {}
+  for (const type of ['done', 'question']) {
+    config[type] = { ...defaults[type], ...config[type] };
+  }
   return config;
 }
 
@@ -44,8 +47,8 @@ export function get() {
   return config;
 }
 
-export function update(type, voice, template) {
-  config[type] = { voice, template };
+export function update(type, voice, template, rate, pitch) {
+  config[type] = { voice, template, rate: rate || '+0%', pitch: pitch || '+0Hz' };
   save();
 }
 

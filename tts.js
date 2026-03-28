@@ -17,7 +17,7 @@ export function getSamples() {
   } catch(e) { return []; }
 }
 
-export function generateSamples(text, cb) {
+export function generateSamples(text, cb, rate, pitch) {
   try {
     readdirSync(SAMPLES_DIR).filter(f => f.endsWith('.wav')).forEach(f => {
       unlinkSync(join(SAMPLES_DIR, f));
@@ -28,12 +28,14 @@ export function generateSamples(text, cb) {
   let done = 0;
   const total = VOICES.length;
   const safeText = text.replace(/'/g, "'\\''");
+  const r = rate || '+0%';
+  const p = pitch || '+0Hz';
 
   VOICES.forEach(voice => {
     const shortName = voice.replace('en-US-', '').replace('Neural', '').toLowerCase();
     const outFile = join(SAMPLES_DIR, `${shortName}--${voice}.wav`);
     exec(
-      `edge-tts --voice "${voice}" --rate="-5%" --pitch="-10Hz" --text '${safeText}' --write-media "${outFile}"`,
+      `edge-tts --voice "${voice}" --rate="${r}" --pitch="${p}" --text '${safeText}' --write-media "${outFile}"`,
       { timeout: 15000 },
       (err) => {
         done++;
@@ -53,9 +55,11 @@ export function generateCached(type, project, cb) {
   const cfg = config[type] || config.done;
   const text = cfg.template.replace(/\{project\}/g, project);
   const safeText = text.replace(/'/g, "'\\''");
+  const rate = cfg.rate || '+0%';
+  const pitch = cfg.pitch || '+0Hz';
 
   exec(
-    `edge-tts --voice "${cfg.voice}" --rate="-5%" --pitch="-10Hz" --text '${safeText}' --write-media "${cachePath}"`,
+    `edge-tts --voice "${cfg.voice}" --rate="${rate}" --pitch="${pitch}" --text '${safeText}' --write-media "${cachePath}"`,
     { timeout: 15000 },
     (err) => {
       if (err) return cb(err);
