@@ -35,7 +35,7 @@ patterns-established:
 
 requirements-completed: [RT-01, RT-02, RT-03, UI-04]
 
-duration: 5min
+duration: 8min
 completed: 2026-03-28
 ---
 
@@ -45,10 +45,10 @@ completed: 2026-03-28
 
 ## Performance
 
-- **Duration:** 5 min
+- **Duration:** 8 min
 - **Started:** 2026-03-28T04:20:18Z
-- **Completed:** 2026-03-28T04:25:30Z
-- **Tasks:** 2 of 3 (Task 3 is human-verify checkpoint)
+- **Completed:** 2026-03-28T04:28:00Z
+- **Tasks:** 3 of 3
 - **Files modified:** 3 (public/index.html created, server.js modified, /etc/caddy/Caddyfile modified)
 
 ## Accomplishments
@@ -63,8 +63,8 @@ completed: 2026-03-28
 Each task was committed atomically:
 
 1. **Task 1: Extract public/index.html with EventSource client, clean server.js** - `8cf0670` (feat)
-2. **Task 2: Configure Caddy reverse proxy for SSE passthrough** - No repo commit (system file /etc/caddy/Caddyfile)
-3. **Task 3: Verify SSE notification delivery end-to-end** - PENDING (checkpoint:human-verify)
+2. **Task 2: Configure Caddy reverse proxy for SSE passthrough** - `14678c8` (docs) + `f9ecdda` (fix: Content-Type audio/mpeg)
+3. **Task 3: Verify SSE notification delivery end-to-end** - Human-verified (approved)
 
 ## Files Created/Modified
 - `public/index.html` - Extracted HTML UI with EventSource client, trigger/config/health listeners, auto-reconnect
@@ -79,10 +79,23 @@ Each task was committed atomically:
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Auto-fixed Issues
+
+**1. [Rule 1 - Bug] Content-Type for /notify-wav changed from audio/wav to audio/mpeg**
+- **Found during:** Task 3 (end-to-end verification)
+- **Issue:** edge-tts outputs MP3 data despite the .wav file extension convention. Browser was rejecting audio playback due to Content-Type mismatch.
+- **Fix:** Changed Content-Type header from `audio/wav` to `audio/mpeg` in the /notify-wav response handler.
+- **Files modified:** server.js
+- **Verification:** Audio plays correctly in browser after trigger fires.
+- **Committed in:** `f9ecdda`
+
+---
+
+**Total deviations:** 1 auto-fixed (1 bug)
+**Impact on plan:** Essential fix for audio playback. No scope creep.
 
 ## Issues Encountered
-None.
+- **DNS resolution:** voice-notifications.codebox.local does not resolve from the user's browser. Direct IP access (192.168.1.122:3099) works. This is a pre-existing DNS configuration issue outside the scope of this plan -- Caddy config is correct and functional.
 
 ## User Setup Required
 None - Caddy was configured and reloaded automatically. Server verified working.
@@ -94,12 +107,12 @@ None - all EventSource listeners wire to real SSE events from the event bus.
 - SSE pipeline fully operational: hook -> POST /trigger -> emit -> EventSource -> browser
 - Caddy proxy configured for voice-notifications.codebox.local
 - Ready for dashboard UI, push notifications, and visual toasts in future phases
-- Task 3 checkpoint awaits human verification of end-to-end flow
+- DNS resolution for voice-notifications.codebox.local needs investigation (works via direct IP)
 
-## Self-Check: PENDING
+## Self-Check: PASSED
 
-Task 3 (human-verify checkpoint) not yet completed. Self-check will finalize after checkpoint approval.
+All files exist (public/index.html, server.js). All 3 task commits verified (8cf0670, 14678c8, f9ecdda). EventSource present in index.html. readFileSync present in server.js. No TRIGGER_FILE references remain.
 
 ---
 *Phase: 02-real-time-connection-server-restructure*
-*Completed: 2026-03-28 (pending Task 3 verification)*
+*Completed: 2026-03-28*

@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-28T04:16:06.024Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-28T04:43:17.658Z"
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -49,6 +49,8 @@ Plan: 2 of 2
 | Phase 01 P01 | 4min | 2 tasks | 3 files |
 | Phase 01 P02 | 3min | 2 tasks | 1 files |
 | Phase 02 P01 | 12min | 3 tasks | 6 files |
+| Phase 02 P02 | 5min | 2 tasks | 3 files |
+| Phase 02 P02 | 8min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -67,6 +69,9 @@ Recent decisions affecting current work:
 - [Phase 02]: Kept trigger.json writes temporarily for backward compat with poll-based HTML client
 - [Phase 02]: SSE replay buffer: 100 events, 15s keepalive for Caddy proxy
 - [Phase 02]: Hook renamed to .cjs for CommonJS compat under ES module package
+- [Phase 02]: Removed /check endpoint and trigger.json — SSE is sole notification path
+- [Phase 02]: Removed /check endpoint and trigger.json — SSE is sole notification path
+- [Phase 02]: Content-Type for audio changed from audio/wav to audio/mpeg (edge-tts outputs MP3)
 
 ### Pending Todos
 
@@ -81,6 +86,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T04:16:06.019Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-28T04:43:17.654Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None

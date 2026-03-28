@@ -82,7 +82,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **UI-01**: Single polished web app served from CodeBox
 - [ ] **UI-02**: Beautiful, modern design (not generic/utilitarian)
 - [ ] **UI-03**: Accessible via LAN (192.168.1.122) and Tailscale (100.123.116.23)
-- [ ] **UI-04**: Embedded HTML extracted from server.js to separate frontend
+- [x] **UI-04**: Embedded HTML extracted from server.js to separate frontend
 
 ## v2 Requirements
 
@@ -158,7 +158,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-01 | Phase 3 | Pending |
 | UI-02 | Phase 3 | Pending |
 | UI-03 | Phase 3 | Pending |
-| UI-04 | Phase 2 | Pending |
+| UI-04 | Phase 2 | Complete |
 
 **Coverage:**
 - v1 requirements: 44 total

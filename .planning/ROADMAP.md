@@ -45,7 +45,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 02-01-PLAN.md — ES module migration + server module split + SSE event bus
-- [ ] 02-02-PLAN.md — Frontend extraction with EventSource client + Caddy SSE config
+- [x] 02-02-PLAN.md — Frontend extraction with EventSource client + Caddy SSE config
 
 ### Phase 3: Notifications Dashboard
 **Goal**: A polished single-page app delivers voice, browser push, and visual toasts for every event alongside a live session status grid and configurable templates
