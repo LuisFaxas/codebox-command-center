@@ -1,170 +1,283 @@
-# Stack Research
+# Technology Stack
 
-**Domain:** Real-time developer dashboard with push notifications and voice TTS — Node.js server
-**Researched:** 2026-03-26
-**Confidence:** HIGH (core decisions) / MEDIUM (library versions)
+**Project:** Voice Notifications v2.0 -- Center Console
+**Researched:** 2026-03-28
+**Focus:** Stack additions for session command center, Manager AI, cross-machine aggregation, screen-filling UI
 
-## Context: What Already Exists
+## Decision Framework
 
-The server is a vanilla Node.js HTTP server (`server.js`, ~420 lines) with no build system,
-no dependencies (only stdlib), and embedded HTML served as a string. Node.js v24.12.0 is
-installed. Edge-tts handles voice synthesis. There is no `package.json`.
+This project values leanness. Every addition must justify itself against "can vanilla JS + Node.js builtins do this?" The bar is: does it save significant complexity, prevent a known pitfall, or enable a capability that's genuinely hard to build from scratch?
 
-The goal is to add: SSE push, browser push notifications (Web Push API), visual toast
-notifications, a live dashboard, and a polished SPA UI — without changing the fundamental
-architecture (Node.js, PM2, edge-tts stay as-is).
+## Key Decisions
 
----
+### 1. UI Framework: Stay Vanilla -- Use Web Components for Encapsulation
 
-## Recommended Stack
+**Decision:** Do NOT add React, Svelte, or any UI framework.
+**Confidence:** HIGH
 
-### Core Technologies
+**Why:**
+- The current codebase is 1584 lines of vanilla HTML/JS/CSS in a single file. The v2 UI will be larger (~3000-4000 lines) but is still a single-user, single-page dashboard -- not a multi-route app with forms, auth, and deep component trees.
+- Web Components (Custom Elements + Shadow DOM) are fully supported in all target browsers (Chrome/Edge) with zero polyfills needed. They provide the encapsulation benefits of components without a build step or framework runtime.
+- Adding React/Svelte would require: a build step (Vite), a bundler, JSX/template compilation, node_modules bloat, and framework-specific patterns the project doesn't currently use. This violates the "no build step" constraint.
+- The dashboard complexity is primarily layout + state rendering, not deep component interaction trees. CSS Grid + container queries handle the layout. A lightweight reactive state store handles the data flow.
+- Real-world precedent: multiple fintech dashboards have been built with vanilla JS + Web Components at similar complexity levels, and developers report faster onboarding and better performance than framework equivalents.
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Node.js (existing) | v24 LTS | HTTP server, SSE, Web Push sender | Already installed. v24 includes native fetch and crypto; no version change needed. |
-| SSE (native, no library) | N/A | Replace 1s polling with push | Server-sent events require zero dependencies — set `Content-Type: text/event-stream` and stream. Browser `EventSource` is built-in. Simpler than WebSocket for one-directional server-to-client push. |
-| Web Push API + Service Worker | Browser built-in | Background push notifications when tab is closed | Industry standard. Works on Chrome, Edge, and macOS Safari. Requires VAPID key pair (one-time setup). |
-| web-push | 3.6.7 | Send Web Push payloads from Node.js server | The canonical Node.js library for the Web Push protocol. Used by tens of millions of sites. Ships its own VAPID key generator. No alternatives with comparable adoption. |
-| Vite | 8.x (latest) | Build/bundle the frontend SPA | Best-in-class DX for vanilla TypeScript SPAs. `vanilla-ts` template works out of box. Enables TypeScript, hot reload in dev, and a minified production bundle. Node.js v24 satisfies its v20.19+ requirement. |
-| TypeScript | 5.x (via Vite) | Type-safe frontend code | Caught by Vite automatically. Eliminates the string-concatenated HTML anti-pattern in current code. No separate config needed for Vite's vanilla-ts template. |
-| Tailwind CSS v4 | 4.x | Utility-first styling | Install as a Vite plugin (`@tailwindcss/vite`). Zero runtime, purged output. v4 targets modern browsers (Chrome 111+, Safari 16.4+, Firefox 128+) which matches the constraint (Chrome/Edge on developer machines). Avoids writing any custom CSS. |
+**What to use instead:**
+- **Custom Elements** for encapsulating session cards, activity feed items, and config panels
+- **CSS Grid + Container Queries** for the screen-filling layout
+- **Proxy-based reactive store** (hand-rolled, ~50 lines) for state management
+- Split `index.html` into multiple files served statically: `index.html`, `components/*.js`, `styles/*.css`
 
-### Supporting Libraries
+**When to reconsider:** If the UI grows beyond ~5000 lines of JS or needs complex form interactions (unlikely for a monitoring dashboard).
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| Notyf | 3.10.0 | In-app toast notifications | 3KB gzipped, zero dependencies, framework-free. Use for visual "done" and "question" toasts inside the SPA tab. Simpler than building custom toast from scratch. |
-| @types/web-push | latest | TypeScript types for web-push | Only needed in server code if migrating server to TypeScript. Skip if keeping server.js as plain JS. |
+### 2. Bidirectional Communication: Add WebSocket Alongside SSE
 
-### Development Tools
+**Decision:** Add WebSocket for client-to-server commands. Keep SSE for server-to-client events.
+**Confidence:** HIGH
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| Vite dev server | HMR during frontend development | `vite` serves the SPA at localhost with hot reload. Point hooks at the existing server.js backend (port 3099). |
-| pnpm | Package management | Matches workspace convention. Use for the new frontend package only. Server stays dependency-free. |
-| web-push CLI (bundled) | Generate VAPID keys once | `npx web-push generate-vapid-keys` — run once, store keys in config.json. |
+**Why:**
+- SSE is perfect for the existing notification push (server -> browser). It auto-reconnects, works through proxies, and the current implementation is clean.
+- But v2 needs bidirectional communication: the user sends commands FROM the dashboard TO sessions (dismiss, respond to questions, route attention). SSE cannot do this -- you'd need separate POST requests for each action, losing the persistent connection context.
+- The hybrid approach (SSE for events, WebSocket for commands) is the best of both worlds. SSE handles the 90% case (server push) efficiently. WebSocket handles the 10% case (user actions) with low latency and connection state.
+- Node.js has a built-in `WebSocket` server in the `ws` module -- the most mature WebSocket library for Node.js, zero native dependencies needed.
 
----
+**Implementation approach:**
+- Keep existing SSE on `/events` for all notification events, session state updates, and config changes
+- Add WebSocket on the same HTTP server (upgrade handler) for user commands: dismiss session, mark as read, send instruction to Manager AI, acknowledge question
+- WebSocket messages use JSON with `{ action: string, payload: object }` format
 
-## Architecture Decision: Two Packages, One Server
+| Library | Version | Purpose | Why This One |
+|---------|---------|---------|--------------|
+| `ws` | ^8.18 | WebSocket server | Most mature Node.js WS lib, zero native deps, works with existing http.createServer, 25M+ weekly downloads |
 
-The existing `server.js` has no package.json and no build step. The right approach is:
+### 3. Manager AI Layer: Claude Agent SDK (TypeScript)
 
-1. Keep `server.js` as-is (plain Node.js, zero deps) — add SSE and Web Push to it directly
-2. Add a `frontend/` Vite package for the new SPA (`pnpm create vite frontend --template vanilla-ts`)
-3. Vite builds the SPA to `frontend/dist/` — server.js serves it as static files
+**Decision:** Use `@anthropic-ai/claude-agent-sdk` for the Manager AI.
+**Confidence:** MEDIUM (SDK is pre-1.0, API may change)
 
-This avoids rewriting the working backend and gives a proper build pipeline for the frontend.
+**Why:**
+- The Manager AI needs to: monitor active sessions, summarize what each session is doing, report status to the user, and relay instructions to sessions.
+- The Claude Agent SDK provides exactly this: `listSessions()` discovers sessions by directory, `query()` with `--resume` can send messages to existing sessions, and hooks (`Notification`, `Stop`, `PostToolUse`) provide real-time event streams.
+- Key capabilities verified in official docs:
+  - `listSessions({ dir })` returns session metadata (sessionId, summary, lastModified, cwd, gitBranch)
+  - `query({ prompt, options: { resume: sessionId } })` resumes a specific session
+  - `query()` returns an async generator streaming `AssistantMessage`, `ResultMessage`, `ToolUseMessage` etc.
+  - Hooks can intercept and log all tool calls, session starts/stops, and notifications
+  - `forkSession` option enables branching conversations
+- The SDK runs in the same Node.js process as the notification server -- no separate service needed.
+- Current version: `0.2.86` (published March 2026). Pre-1.0 but actively developed with weekly releases.
 
----
+**Risk:** SDK is pre-1.0 and API surface changes between versions. Pin the exact version and wrap SDK calls in an abstraction layer so changes don't ripple through the codebase.
+
+**What the Manager AI can do (phased):**
+1. **Phase 1 (Passive):** List active sessions, show summaries, aggregate status across machines
+2. **Phase 2 (Active):** Relay instructions to sessions (e.g., "focus on the auth bug"), summarize session activity
+3. **Phase 3 (Autonomous):** Monitor sessions for patterns (stuck, looping, waiting), proactively alert
+
+| Library | Version | Purpose | Why This One |
+|---------|---------|---------|--------------|
+| `@anthropic-ai/claude-agent-sdk` | 0.2.86 | Programmatic Claude Code control | Official SDK, session listing, query/resume, hooks, same-process execution |
+
+### 4. Cross-Machine Session Aggregation: Enhanced Hook Protocol
+
+**Decision:** Extend the existing hook HTTP protocol, not new infrastructure.
+**Confidence:** HIGH
+
+**Why:**
+- The current system already has cross-machine hooks: `notify-trigger.cjs` runs on remote machines and hits the server's `/trigger` endpoint via HTTP. This works.
+- What's missing is richer data: session ID, machine name, working directory, and heartbeat/alive signals.
+- The fix is protocol evolution, not new technology. The existing POST body already accepts `{ type, project, sessionId, machine, cwd, timestamp }`. The hooks just need to send all these fields consistently.
+- Claude Code hooks (configured in `settings.json`) pass `$CLAUDE_SESSION_ID`, `$CLAUDE_PROJECT_DIR`, and `$CLAUDE_CWD` as environment variables. The hook scripts need to forward these.
+- For heartbeat/alive signals: add a `/heartbeat` endpoint that hooks call periodically (every 30s) to signal "session still active." This is simpler and more reliable than trying to monitor processes remotely.
+
+**No new dependencies needed.** The existing Node.js HTTP server handles this.
+
+**Enhancement needed on remote hooks:**
+- Update `notify-trigger.cjs` to send `sessionId`, `machine` (hostname), `cwd` in every request
+- Add periodic heartbeat calls (configurable interval, default 30s)
+- Add hook for `session:start` and `session:end` lifecycle events
+
+### 5. State Management: Proxy-Based Reactive Store
+
+**Decision:** Hand-roll a Proxy-based reactive store (~50-80 lines). Do NOT add Redux, MobX, Zustand, or any state library.
+**Confidence:** HIGH
+
+**Why:**
+- The current client-side state is already a `Map` (`sessions`) and an array (`activityFeed`) with manual `render*()` calls. This works but doesn't scale -- adding session details, command history, and Manager AI state would mean more scattered render calls.
+- A Proxy-based store provides automatic reactivity: change a property, subscribers get notified, affected UI re-renders. This is the vanilla JS equivalent of React's useState/useEffect without the framework.
+- The pattern is ~50 lines of code, well-understood, and has zero dependencies. It uses `Proxy` (available in all target browsers since 2016) and a simple subscriber pattern.
+- The state shape for v2 is moderate complexity: sessions map, activity feed, config, Manager AI state, UI state (selected session, panel visibility). This fits perfectly in a single reactive store.
+
+**Implementation pattern:**
+```javascript
+// ~50 lines, no dependencies
+function createStore(initialState) {
+  const listeners = new Set();
+  const handler = {
+    set(target, prop, value) {
+      target[prop] = value;
+      listeners.forEach(fn => fn(prop, value));
+      return true;
+    }
+  };
+  const state = new Proxy({ ...initialState }, handler);
+  return {
+    state,
+    subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+    batch(fn) { /* batch multiple updates, notify once */ }
+  };
+}
+```
+
+### 6. File Serving: Split HTML into Modules
+
+**Decision:** Split the monolithic `public/index.html` into separate files. Use ES modules for JS, separate CSS files, serve statically.
+**Confidence:** HIGH
+
+**Why:**
+- The current 1584-line single file is already at the edge of maintainability. Adding session detail views, Manager AI panel, and richer session cards would push it to 3000+ lines in one file.
+- Modern browsers support ES modules natively (`<script type="module">`). No build step needed.
+- CSS can be split into logical files and loaded with `<link>` tags or `@import`.
+- The server already serves static files from `public/`. Extend this to serve `public/components/*.js` and `public/styles/*.css`.
+
+**Proposed structure:**
+```
+public/
+  index.html              -- Shell: layout, script/style imports
+  styles/
+    base.css              -- Variables, resets, typography
+    layout.css            -- Grid layout, panels
+    components.css        -- Session cards, feed items, toasts
+  components/
+    store.js              -- Reactive state store
+    sse-client.js         -- SSE connection management
+    ws-client.js          -- WebSocket command channel
+    session-card.js       -- Session card web component
+    session-detail.js     -- Expanded session view
+    activity-feed.js      -- Activity feed component
+    manager-panel.js      -- Manager AI interaction panel
+    toast-system.js       -- Toast notification system
+    config-panel.js       -- Voice/notification config
+  lib/
+    utils.js              -- Shared utilities
+```
+
+**Server-side change:** Add a static file handler that serves any file under `public/` with correct MIME types. Currently the server only serves `index.html`, `sw.js`, and `wav/` files explicitly.
+
+## Recommended Stack Additions
+
+### New Server Dependencies
+
+| Library | Version | Purpose | Justification |
+|---------|---------|---------|---------------|
+| `ws` | ^8.18 | WebSocket server | Bidirectional user commands, handles upgrade on existing http.createServer |
+| `@anthropic-ai/claude-agent-sdk` | 0.2.86 (pinned) | Manager AI layer | Session listing, programmatic query/resume, hooks integration |
+
+### No New Client Dependencies
+
+The browser side remains dependency-free. All capabilities come from browser APIs:
+- `EventSource` for SSE (existing)
+- `WebSocket` for commands (browser built-in)
+- `Proxy` for reactive state (ES6)
+- Custom Elements for component encapsulation (Web Components)
+- CSS Grid + Container Queries for layout (CSS native)
+- ES Modules for code organization (browser native)
+
+### Existing Dependencies (Unchanged)
+
+| Library | Version | Purpose | Status |
+|---------|---------|---------|--------|
+| `web-push` | ^3.6.7 | Browser push notifications | Keep -- working, validated |
+| `edge-tts` (Python) | ^7.2.8 | Text-to-speech synthesis | Keep -- working, validated |
+| `playwright` (dev) | ^1.58.2 | E2E testing | Keep -- dev only |
+
+## What NOT to Add
+
+| Technology | Why Not |
+|------------|---------|
+| React / Svelte / Vue | Build step required, framework runtime overhead, overkill for single-page monitoring dashboard |
+| Vite / Webpack / esbuild | No build step needed -- ES modules work natively in Chrome/Edge |
+| TypeScript | Project convention is plain JS. Node v24 erasable TS exists but would change every file. Not worth it for this scope. |
+| Express / Fastify | Node.js `http` module works fine. Adding a framework for routing would be over-engineering -- there are ~12 routes total. |
+| Redis / SQLite | Session state is ephemeral (in-memory maps). Config is a JSON file. No database needed for a single-user tool. |
+| Socket.IO | Overkill -- `ws` is lighter and we don't need Socket.IO's room/namespace features or fallback transport negotiation |
+| Zustand / MobX / Redux | 50-line Proxy store covers all state management needs |
+| Tailwind CSS | Requires build step. The existing CSS custom properties + utility classes approach is working fine. |
+| Docker / containers | Single PM2 process on CodeBox. Containerization adds complexity for zero benefit. |
+
+## Unconventional Approaches Worth Considering
+
+### 1. Terminal-in-Browser via xterm.js
+For the "actionable sessions" feature, instead of building a custom chat-like interface to interact with Claude sessions, embed an actual terminal view using xterm.js. This would show the real Claude Code terminal output for each session, making the dashboard feel like a terminal multiplexer (tmux for Claude sessions). **Verdict: Defer to phase-specific research.** The complexity/value tradeoff needs validation.
+
+### 2. Agent SDK as an MCP Server
+Instead of the Manager AI calling the Agent SDK directly, expose session management as an MCP server that the dashboard's own Claude context can use. This inverts the control -- the user talks to a Claude instance in the dashboard, which has tools to list/query/resume sessions. **Verdict: Interesting for Phase 3 but premature now.**
+
+### 3. OS-Level Process Monitoring
+On CodeBox (Linux), you can detect active Claude Code sessions by scanning for `claude` processes via `/proc`. This gives you session detection without relying on hooks at all -- useful as a fallback when hooks fail. **Verdict: Worth adding as a supplementary signal in the heartbeat system.**
+
+```bash
+# Detect active Claude Code sessions on CodeBox
+ps aux | grep '[c]laude' | awk '{print $2, $11, $12}'
+```
+
+### 4. Shared Memory via BroadcastChannel
+If the user opens multiple dashboard tabs, use the BroadcastChannel API to sync state between them. One tab holds the SSE connection, others receive forwarded events. Prevents duplicate SSE connections and duplicate audio playback. **Verdict: Add to v2 as it solves a real annoyance.**
 
 ## Installation
 
 ```bash
-# Create frontend package
-cd /home/faxas/workspaces/projects/personal/voice_notifications
-pnpm create vite@latest frontend --template vanilla-ts
-cd frontend
-pnpm install
-
-# Tailwind CSS v4 Vite plugin
-pnpm add -D @tailwindcss/vite
-
-# In-app toasts (frontend only)
-pnpm add notyf
-
-# Back in project root — add web-push to server
-# First create package.json for the server
-cd ..
-pnpm init
-pnpm add web-push
+# From project root
+pnpm add ws@^8.18
+pnpm add @anthropic-ai/claude-agent-sdk@0.2.86
 ```
 
----
+Total new production dependencies: **2**
+Total new dev dependencies: **0**
+Combined install size estimate: ~15MB (ws is tiny, agent SDK is larger but tree-shakeable)
 
-## Alternatives Considered
+## Integration Points with Existing Code
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| SSE (native) | WebSocket (ws library) | Only if bidirectional real-time communication is needed (e.g. user can type commands back to server). This project is server-to-client only. |
-| SSE (native) | Long-polling (current) | Never — polling wastes 1 request/second per tab and introduces 0-1s jitter. SSE is strictly better for this use case. |
-| Vite + vanilla-ts | React/Vue/Svelte | If the team needs component reactivity at scale. For a single-user developer tool with <10 UI components, a framework adds 40-100KB and complexity for no benefit. |
-| Vite + vanilla-ts | Plain HTML string in server.js (current) | Only acceptable for prototypes. Impossible to maintain, no type safety, no HMR. |
-| Tailwind CSS v4 (Vite plugin) | Tailwind CDN Play | CDN is explicitly not production-safe per Tailwind's own docs. Ships unprocessed CSS; no purging. |
-| Tailwind CSS v4 (Vite plugin) | Plain CSS | Acceptable, but Tailwind v4 via Vite is zero-runtime and produces smaller output than handwritten CSS for a full dashboard. |
-| Notyf | Custom toast component | Notyf is 3KB and production-tested. Building custom toast means reinventing animations, positioning, and a11y. |
-| Notyf | react-toastify | react-toastify requires React. This project has no framework. |
-| web-push (Node.js) | Firebase Cloud Messaging (FCM) | FCM requires a Google account and API key. web-push is self-hosted, free, and uses the open W3C Web Push standard. |
-| web-push (Node.js) | Pusher / Ably | Third-party SaaS with cost and privacy implications. No reason to use for a single-user local tool. |
+### server.js Changes
+1. Import `ws` and create WebSocket server on same `http.createServer`
+2. Add static file serving for `public/**/*` (currently only serves `index.html` and specific paths)
+3. Add `/heartbeat` POST endpoint for session alive signals
+4. Import Agent SDK for Manager AI endpoints (`/api/sessions`, `/api/session/:id`, `/api/manager/query`)
 
----
+### sse.js Changes
+- None. SSE continues to handle all server-to-client events unchanged.
 
-## What NOT to Use
+### Hook Protocol Changes
+- `notify-trigger.cjs`: Add `sessionId` (from `$CLAUDE_SESSION_ID`), `machine` (from `os.hostname()`), `cwd` (from `$CLAUDE_CWD`) to POST body
+- Add heartbeat interval (30s) during active sessions
+- Add `session:start` and `session:end` events
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| WebSocket (ws library) | Overkill for server-to-client-only push. Adds a library dependency and connection upgrade logic. SSE is built into HTTP and the browser. | Native SSE (`text/event-stream`) |
-| Socket.io | Abstracts both WebSocket and polling — too heavy (100KB+) for a problem that SSE solves in 20 lines of native Node.js. | Native SSE |
-| React / Vue / Svelte | A full frontend framework for a single-user developer tool with ~5 components adds 40-100KB bundle weight and significant boilerplate. | Vite vanilla-ts |
-| Next.js / Nuxt | Server-side rendering framework for a tool that is already a Node.js server. Creates two servers and doubles complexity. | Vite vanilla-ts SPA served from existing server.js |
-| Tailwind CDN Play (`@tailwindcss/browser`) | Explicitly documented as "not for production" by Tailwind team. Ships all classes unoptimized. | `@tailwindcss/vite` plugin with build step |
-| Pusher / Ably / OneSignal | Paid third-party push services. This system is intentionally self-hosted with no external dependencies. | web-push + VAPID (self-hosted) |
-| Long-polling `/check` endpoint (current) | 1 request/second per tab. Non-deterministic timing (up to 1s delay). Wasteful on both server and browser. | SSE EventSource |
+### public/index.html Changes
+- Refactor from monolithic file to shell + ES module imports
+- Replace inline state management with reactive Proxy store
+- Add WebSocket client for user commands
+- Restructure layout to fill screen with CSS Grid + container queries
 
----
+## Confidence Assessment
 
-## Stack Patterns by Variant
-
-**If keeping server.js as a single file (current approach):**
-- Add SSE client list to server.js with a `Map` of `res` objects keyed by connection ID
-- Add `/events` SSE endpoint, remove `/check` endpoint
-- Add `/subscribe` endpoint to store Web Push subscriptions (write to `data/subscriptions.json`)
-- Add `/vapid-public-key` endpoint that returns the public key to the frontend
-- Serve `frontend/dist/` as static files from the catch-all route
-
-**If splitting into server + frontend (recommended for maintainability):**
-- `frontend/` — Vite vanilla-ts package
-- `server.js` — stays as plain Node.js, gains `web-push` dependency only
-- Build step: `cd frontend && pnpm build` before deploying
-
-**If Safari push is required (iOS):**
-- Safari iOS requires the web app to be installed as a Home Screen app
-- macOS Safari works with standard VAPID Web Push (Safari 16+ supports it)
-- For the current use case (developer machines = Chrome/Edge on Windows + macOS), standard VAPID covers all clients
-
----
-
-## Version Compatibility
-
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| web-push@3.6.7 | Node.js v10+ | Works on Node.js v24. No issues. Last published ~2 years ago but the Web Push protocol is stable. |
-| Vite@8.x | Node.js v20.19+, v22.12+ | Node.js v24.12.0 satisfies this. |
-| @tailwindcss/vite@4.x | Vite 8.x | Tailwind v4 ships its own Vite plugin. Do not use `autoprefixer` or the old `tailwindcss` PostCSS plugin — they are for v3. |
-| Notyf@3.10.0 | Any modern browser | ES module and IIFE builds included. Works with Vite's module bundler. |
-| TypeScript@5.x | Vite vanilla-ts template | Bundled by Vite. No separate `ts-node` or esbuild install needed. |
-
----
-
-## Key Risk: web-push Maintenance Status
-
-**Confidence: MEDIUM.** The `web-push` npm package (v3.6.7) was last published approximately 2 years ago. The Web Push protocol (RFC 8030) is stable and unlikely to change. Browser push endpoints (Google FCM for Chrome, Mozilla for Firefox, Apple for Safari) do update their VAPID requirements over time. The library has 3.5k stars and 317 forks on GitHub.
-
-**Mitigation:** This is a single-user developer tool, not a high-stakes production system. If web-push breaks due to endpoint changes, the fallback is to drop browser push notifications and keep only SSE + in-app toasts (which cover the primary use case of "tab is open"). The in-app experience via SSE is the primary notification path; browser push is a secondary enhancement.
-
----
+| Decision | Confidence | Rationale |
+|----------|------------|-----------|
+| Stay vanilla JS (no framework) | HIGH | Current codebase is vanilla, complexity is manageable, Web Components provide encapsulation |
+| WebSocket via `ws` | HIGH | Mature library, zero native deps, well-understood pattern for bidirectional comms |
+| Agent SDK for Manager AI | MEDIUM | SDK is pre-1.0 (v0.2.86), API may change. Pin version, wrap in abstraction layer. |
+| Proxy-based state store | HIGH | Browser-native API, well-documented pattern, ~50 lines of code |
+| Enhanced hook protocol | HIGH | Extends existing working system, no new infrastructure needed |
+| Split files with ES modules | HIGH | Browser-native, zero build step, immediate maintainability benefit |
 
 ## Sources
 
-- [SSE vs WebSocket — RxDB comprehensive comparison](https://rxdb.info/articles/websockets-sse-polling-webrtc-webtransport.html) — HIGH confidence, verified multiple sources agree
-- [web-push GitHub — web-push-libs/web-push](https://github.com/web-push-libs/web-push) — MEDIUM confidence (version from npm search result, not direct read)
-- [Vite Getting Started](https://vite.dev/guide/) — HIGH confidence, directly fetched; v8.0.2, requires Node 20.19+
-- [Tailwind CSS v4 Play CDN docs](https://tailwindcss.com/docs/installation/play-cdn) — HIGH confidence, directly fetched; confirms CDN is dev-only
-- [Notyf npm — carlosroso1222/notyf](https://github.com/caroso1222/notyf) — MEDIUM confidence; v3.10.0, 2.99KB gzipped
-- [MDN Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API) — HIGH confidence; browser support confirmed
-- [web-push npm search result](https://www.npmjs.com/package/web-push) — MEDIUM confidence; v3.6.7 confirmed via search snippet
-
----
-*Stack research for: Voice Notifications — real-time dashboard + push notification milestone*
-*Researched: 2026-03-26*
+- [Claude Code Headless/Programmatic Docs](https://code.claude.com/docs/en/headless) -- session resume, `--output-format`, `--continue`
+- [Agent SDK TypeScript Reference](https://platform.claude.com/docs/en/agent-sdk/typescript) -- `query()`, `listSessions()`, hooks, Options type
+- [Agent SDK Hooks Guide](https://platform.claude.com/docs/en/agent-sdk/hooks) -- PreToolUse, PostToolUse, Notification, Stop hooks with full callback signatures
+- [WebSocket.org: SSE vs WebSocket](https://websocket.org/comparisons/sse/) -- comparison of bidirectional capabilities
+- [SSE beats WebSockets for 95% of real-time apps](https://dev.to/polliog/server-sent-events-beat-websockets-for-95-of-real-time-apps-heres-why-a4l) -- SSE advantages, when WebSocket is actually needed
+- [@anthropic-ai/claude-agent-sdk on npm](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) -- version 0.2.86, published March 2026
+- [ws on npm](https://www.npmjs.com/package/ws) -- WebSocket library for Node.js
+- [State Management in Vanilla JS: 2026 Trends](https://medium.com/@chirag.dave/state-management-in-vanilla-js-2026-trends-f9baed7599de) -- Proxy-based reactive patterns
+- [CSS Container Queries Guide](https://devtoolbox.dedyn.io/blog/css-container-queries-guide) -- responsive component layouts without media queries
+- [Vanilla JS State Management with Proxies](https://dev.to/christosmaris/vanilla-js-state-management-using-proxies-19l5) -- implementation pattern

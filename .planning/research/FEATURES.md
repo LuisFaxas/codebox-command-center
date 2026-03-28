@@ -1,192 +1,352 @@
-# Feature Research
+# Feature Landscape: v2.0 Center Console
 
-**Domain:** Developer notification dashboard + real-time multi-session monitoring for AI coding assistants
-**Researched:** 2026-03-26
-**Confidence:** HIGH (domain is well-understood; project has specific context from PROJECT.md)
+**Domain:** AI coding session command center, multi-session monitoring, Manager AI orchestration
+**Researched:** 2026-03-28
+**Overall confidence:** MEDIUM (some features are novel with no direct precedent; Claude Code APIs are experimental and changing)
 
-## Feature Landscape
+## Context
 
-### Table Stakes (Users Expect These)
+This research covers NEW features for v2.0 only. The following are already built and working in v1.0:
+- Voice notifications (edge-tts, per-type config)
+- Browser push notifications (VAPID, service worker)
+- Visual toast notifications
+- Session status tracking (working/done/attention/stale via SSE)
+- Activity feed (chronological events)
+- Voice configuration panel
 
-Features users assume exist. Missing these = product feels incomplete.
+The v2.0 goal: transform from notification tool into a unified session command center.
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Voice notification on Claude stop/done | Core value prop — the whole reason the system exists | LOW | Already partially implemented; needs reliability fix |
-| Voice notification on Claude question/attention | Without this half the value is missing — "done" without "needs you" is incomplete | LOW | AskUserQuestion hook not firing reliably; must fix |
-| Push notification when tab is in background | Tab is almost always in background during actual work; foreground-only is useless | MEDIUM | Web Push API requires VAPID key setup; service worker required |
-| Visual toast notification in-app | Immediate visible confirmation without alt-tabbing | LOW | Standard UI pattern; libraries like Sonner handle this trivially |
-| Project name in every notification | 5+ concurrent sessions are indistinguishable without project context | LOW | Folder basename strategy; already planned but unreliable |
-| Real-time connection (SSE or WebSocket) | 1-second polling causes missed events and is wasteful | MEDIUM | SSE is simpler than WS for this unidirectional use case; verified by research |
-| Works from remote machine (Tailscale) | User works from Lenovo and Mac; CodeBox-only defeats the purpose | LOW | Server already on Tailscale; client is just a browser URL |
-| Status per session: working / done / needs attention | Without status differentiation, the dashboard is just a list of names | MEDIUM | Three states minimum; color-coded visual badges standard pattern |
-| Voice configuration panel | Different events warrant different voices or rates; no config = no customization | MEDIUM | Voice selection, rate/pitch per event type (stop vs question) |
+---
 
-### Differentiators (Competitive Advantage)
+## Table Stakes
 
-Features that set the product apart. Not required, but valuable.
+Features the "command center" concept requires to be credible. Without these, it is just a fancier notification panel.
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Multi-machine session aggregation | No other tool shows Claude Code sessions from CodeBox + Lenovo + Mac in one view | HIGH | Requires heartbeat/reporting protocol from each machine; the killer feature for this workflow |
-| Live activity feed across all projects | Chronological event stream shows the full picture — not just current state | MEDIUM | Time-ordered list: "[project] finished", "[project] needs you at 14:32"; replaces context-switching |
-| Per-event notification type config | "Done" gets a calm voice; "question" gets urgent voice + different sound | MEDIUM | Maps event type → voice profile; increases useful signal vs noise |
-| Notification template editor | `{project} is done` → customizable copy per event type | LOW | UI for template strings; edge-tts already parameterized |
-| Session duration / time tracking | "project-x has been working for 47 minutes" adds urgency awareness | MEDIUM | Track start time per session; display elapsed time |
-| Snooze / mute per project | Working on project-x yourself; don't want notifications from it for 30 mins | MEDIUM | Per-project mute state stored server-side; toggle in UI |
-| Notification history / log | Review what happened while you were away; persistent event store | MEDIUM | SQLite or JSON log; queryable by project/type/time |
+| Feature | Why Expected | Complexity | Dependencies | Feasibility |
+|---------|--------------|------------|--------------|-------------|
+| **Rich session cards** | A "command center" with blank cards is useless -- each session needs identity, state, project, machine, and duration | MEDIUM | Hook data: session_id, cwd, machine (hostname), hook_event_name | HIGH -- all data available from existing hooks |
+| **Session timeline / history** | Users need to see what happened in a session, not just current state -- "what did it do while I was away?" | MEDIUM | Store events per session_id server-side; replay from SSE buffer | HIGH -- already have event data, need per-session indexing |
+| **Cross-machine aggregation** | Running sessions on CodeBox + Lenovo + Mac; seeing only local sessions defeats the purpose | LOW | Remote hooks already exist (notify-trigger.cjs sends machine hostname) | HIGH -- architecture already supports this, need to verify remote hooks work |
+| **Machine identity labels** | "codebox session" vs "lenovo session" vs "mac session" must be instantly distinguishable | LOW | os.hostname() already sent in hook payload | HIGH -- trivial UI work |
+| **Session lifecycle states** | Need clear states: spawning, working, waiting-for-input, done, stale, error | MEDIUM | Derive from hook events: SessionStart, Stop, Notification, StopFailure; timeout-based stale detection | HIGH -- mostly inference from existing events |
+| **Screen-filling layout** | 16" screen should be used, not a narrow centered column | MEDIUM | CSS Grid redesign; responsive breakpoints for different screen sizes | HIGH -- standard CSS work |
+| **Notification preservation** | Voice + push + toast must continue working exactly as v1.0 | LOW | No new work -- just don't break it during refactor | HIGH -- regression testing needed |
 
-### Anti-Features (Commonly Requested, Often Problematic)
+### Session Card Deep Dive
 
-Features that seem good but create problems.
+What makes a session card actually useful? Based on available hook data and transcript analysis:
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| Email / Slack / SMS notifications | "What if I'm not at my desk?" | Defeats the single-user, always-near-browser premise; adds external service dependencies that violate the lean constraint | Browser push works when away from desk; phone has browser |
-| Real-time code diff viewer in dashboard | Sounds useful — see what Claude changed | Massive complexity (file watching, diffing, rendering); outside the "notification" scope entirely | Open the IDE; dashboard is status awareness, not code review |
-| Session control (pause/stop Claude) | "While I'm here, let me stop that session" | Claude Code's control plane is not exposed via HTTP; creating a control API is a separate project | Keep dashboard read-only; control happens in terminal |
-| Multi-user / team support | "Could others see my sessions?" | Single-user system by design; auth complexity for marginal benefit | Out of scope per PROJECT.md |
-| Mobile app (native) | Better push on mobile | Browser push works fine; native app is a separate project lifecycle | Progressive Web App (PWA) manifest if mobile push needed |
-| Non-English / multi-voice languages | "Could you add Spanish voices?" | Scope creep; en-US neural voices cover the use case | Add other languages only if project evolves beyond personal use |
-| AI-generated notification summaries | "Summarize what Claude did" | Requires calling another LLM API; latency, cost, dependency — overkill for a status ping | Hook payload already contains enough context (project + event type) |
-| Persistent per-project settings in cloud | "Sync my voice settings across machines" | CodeBox is the hub; settings live on CodeBox; no cloud sync needed | Server-side config file is the single source of truth |
+**Available directly from hooks (HIGH confidence):**
+- `session_id` -- unique identifier, correlate all events
+- `cwd` -- working directory, derive project name
+- `hook_event_name` -- what just happened (Stop, Notification, PostToolUse, etc.)
+- `machine` -- hostname of source machine (os.hostname())
+- `timestamp` -- when each event fired
+- `permission_mode` -- current permission level (default, auto, plan, etc.)
+- `transcript_path` -- path to full session JSONL on that machine
+- `stop_hook_active` -- whether a stop hook is running (prevents infinite loops)
+- `last_assistant_message` -- Claude's last response text (from Stop event)
+- `source` -- session origin: startup, resume, clear, compact (from SessionStart)
+- `model` -- which model the session is using (from SessionStart)
+
+**Available from tool events (HIGH confidence, requires PostToolUse hooks):**
+- `tool_name` -- what tool was just used (Bash, Edit, Write, Read, Grep, etc.)
+- `tool_input` -- what arguments were passed (command text, file paths, etc.)
+- `tool_response` -- tool output (truncated for dashboard display)
+
+**Derivable (MEDIUM confidence):**
+- Session duration -- difference between first and last event timestamps
+- Activity rate -- events per minute, indicates busy vs idle
+- Files touched -- accumulate file paths from Edit/Write/Read tool events
+- Current task summary -- extract from `last_assistant_message` on Stop events
+- Error state -- detect from StopFailure events (rate_limit, billing_error, etc.)
+- Tool usage pattern -- count of Bash vs Edit vs Read gives "character" of session
+
+**Requires transcript parsing (LOW-MEDIUM confidence, only works for local sessions):**
+- Full conversation summary -- parse JSONL, extract assistant messages
+- Token usage -- available in transcript metadata
+- Thinking blocks -- Claude's reasoning (if extended thinking enabled)
+- Subagent activity -- nested agent spawns visible in transcript
+
+---
+
+## Differentiators
+
+Features that make this genuinely powerful rather than just adequate.
+
+### Tier 1: High Value, Achievable
+
+| Feature | Value Proposition | Complexity | Dependencies | Feasibility |
+|---------|-------------------|------------|--------------|-------------|
+| **Last message preview** | See Claude's last response without switching terminals -- the single most useful piece of context | LOW | `last_assistant_message` from Stop hook | HIGH -- data already in payload |
+| **Question display with context** | When Claude asks a question, show the actual question text so user can decide priority | LOW | `message` field from Notification hook (notification_type: "permission_prompt") | HIGH -- data available |
+| **Tool activity stream per session** | Live feed of what tools a session is using: "Bash: npm test", "Edit: src/auth.ts" -- like watching over Claude's shoulder | MEDIUM | PostToolUse hooks sending tool_name + abbreviated tool_input | HIGH -- requires adding PostToolUse hook, straightforward |
+| **Session grouping by project** | Multiple sessions on the same project (e.g., main + test runner) should be visually grouped | LOW | Group by resolved project name from cwd | HIGH -- client-side grouping |
+| **Stale session detection** | Auto-detect sessions that haven't sent events in N minutes; mark as stale/possibly dead | LOW | Server-side timeout tracking per session_id | HIGH -- timer logic |
+| **Compact vs expanded card toggle** | Overview mode (all sessions as small tiles) vs detail mode (one session expanded with full history) | MEDIUM | CSS state management, no new data needed | HIGH -- pure UI |
+| **Sidebar config panel** | Move voice/push configuration into a collapsible sidebar instead of occupying main screen space | LOW | Restructure existing HTML/CSS | HIGH |
+
+### Tier 2: Ambitious, Technically Novel
+
+| Feature | Value Proposition | Complexity | Dependencies | Feasibility |
+|---------|-------------------|------------|--------------|-------------|
+| **AI-generated session summaries** | "This session is building auth middleware, has run tests 3 times, last test passed" -- synthesized from event stream | HIGH | Run Claude API call (or local LLM) on accumulated events per session; needs API key or headless Claude invocation | MEDIUM -- cost and latency concerns; could use cheap model |
+| **Session transcript viewer** | Read the full JSONL transcript of a local (CodeBox) session from the dashboard | HIGH | Parse `~/.claude/projects/*/SESSION_ID.jsonl`, render in UI | MEDIUM -- only works for CodeBox sessions (transcript_path is local); need file system access from server |
+| **Respond to questions via dashboard** | Type a response in the dashboard and have it reach the Claude Code session | HIGH | See detailed analysis below | LOW -- significant technical barriers |
+| **Cross-session dependency detection** | Detect when Session A edits a file that Session B is also working on -- flag potential conflicts | HIGH | Track file paths from Edit/Write tool events across all sessions; compute overlaps | MEDIUM -- data available from PostToolUse hooks, but noise-to-signal ratio is high |
+| **Session recording / playback** | Record all events for a session, replay later to understand what happened | MEDIUM | Already storing events in SSE buffer; extend to persistent storage per session | HIGH -- mostly a storage and UI problem |
+| **Resource monitoring** | CPU/memory of CodeBox visible alongside sessions, so user knows when machine is overloaded | MEDIUM | Server-side process monitoring (os module or /proc parsing) | HIGH for CodeBox; LOW for remote machines |
+| **Error pattern detection** | Flag sessions that are repeatedly hitting errors, rate limits, or stuck in loops | MEDIUM | Analyze StopFailure events and repeated tool failures per session | MEDIUM -- heuristics needed |
+
+---
+
+## Anti-Features
+
+Features to explicitly NOT build.
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| **Full IDE integration / code viewer** | Scope explosion; the dashboard shows status, it does not replace the terminal | Show file names and tool summaries, link to project directory |
+| **Session creation from dashboard** | Starting Claude Code sessions requires terminal context, project selection, permission mode -- too complex for a web UI | Show how to start sessions, but let users start them in terminals |
+| **Multi-user support** | Single user system; adding auth/permissions adds complexity for zero value | Hardcode for faxas, no login |
+| **Mobile-optimized layout** | This is a 16" screen command center; mobile layout compromises desktop density | Responsive down to laptop (13"), but no phone layout |
+| **Chat interface in dashboard** | Trying to build a chat UI for Claude sessions creates a poor copy of the terminal | Show last messages read-only; interact via terminal |
+| **Persistent session database** | SQLite or Postgres for session data adds operational complexity for a personal tool | In-memory session state with event log files for replay; sessions are ephemeral |
+| **Custom notification sounds per project** | Over-engineering; type-based (done/question) distinction is sufficient | Keep per-type voice config, not per-project |
+| **Real-time token/cost tracking per session** | Requires parsing JSONL transcripts continuously, which is expensive and only works locally | Show token summary on session end (from transcript) if feasible; don't track live |
+
+---
+
+## "Respond to a Question" -- Deep Analysis
+
+This is the most requested feature and the hardest to implement. Here is an honest assessment:
+
+### What "respond to a question" means in practice
+
+When Claude Code asks a question (permission prompt, AskUserQuestion, or Elicitation), it is waiting for keyboard input in a terminal. The Notification hook fires, but the session is blocked until the user types a response in that terminal.
+
+### Technical approaches and their feasibility
+
+**Approach 1: Send keystrokes to terminal (tmux/screen)**
+- If Claude Code sessions run in tmux, you can `tmux send-keys -t SESSION "yes" Enter`
+- Feasibility: HIGH for CodeBox sessions in tmux, ZERO for remote machines
+- Limitation: Brittle; depends on tmux session naming; can send wrong input if session state changed
+
+**Approach 2: Claude Code SDK / headless mode follow-up**
+- Use `claude -p "response" --resume SESSION_ID` to send a follow-up
+- Feasibility: LOW -- this starts a new CLI process that resumes the conversation from transcript, it does not inject into the running interactive session
+- The running session and the headless resume are separate processes
+
+**Approach 3: File-based signaling**
+- Write a response file; configure a Claude Code hook (FileChanged or custom) to read it
+- Feasibility: LOW -- no hook exists for "inject user input"; hooks fire on Claude actions, not user actions
+
+**Approach 4: Notification-only with smart routing**
+- Don't try to send input. Instead: show which terminal/tmux pane needs attention, with a "Go to session" action
+- For tmux: `tmux select-window -t SESSION` can focus the right pane
+- Feasibility: HIGH -- pragmatic, doesn't fight the architecture
+
+### Recommendation
+
+**Do NOT try to build input injection.** The terminal is the interaction surface for Claude Code, and fighting that creates a brittle, unreliable experience.
+
+**Instead, build "smart attention routing":**
+1. When a question/permission event fires, show it prominently with the actual question text
+2. Provide a "Focus" button that runs `tmux select-window -t PANE` (for CodeBox sessions in tmux)
+3. For remote sessions, show which machine and terminal to switch to
+4. Prioritize question sessions visually (sort to top, glow, sound)
+
+This is honest, reliable, and actually useful. Confidence: HIGH.
+
+---
+
+## Manager AI -- Deep Analysis
+
+### What this means
+
+An AI layer that monitors all active sessions, summarizes what is happening across them, and could relay high-level instructions.
+
+### Precedent
+
+Claude Code Agent Teams (experimental, v2.1.32+) already implement a team lead that coordinates multiple Claude instances. The lead:
+- Spawns teammates and assigns tasks
+- Receives automatic messages when teammates finish or go idle
+- Maintains a shared task list with states (pending, in progress, completed)
+- Can message individual teammates or broadcast
+
+This is the closest precedent, but it is an active orchestration tool, not a passive monitor.
+
+Other tools in the ecosystem:
+- **Overstory** -- multi-agent orchestrator with tiered watchdog system (mechanical daemon + AI triage + monitor agent)
+- **Mission Control by Builderz** -- open-source agent orchestration dashboard with task dispatch, cost tracking, WebSocket/SSE
+- **Ruflo** -- comprehensive agent orchestration framework for Claude Code
+
+### What a Manager AI could realistically do
+
+**Passive monitoring (HIGH feasibility):**
+- Consume the same SSE event stream the dashboard already provides
+- Summarize activity across sessions: "3 sessions active, 1 needs attention, 2 are building"
+- Generate periodic status reports: "In the last hour: voice_notifications had 5 events, auth-service had 12, testing completed"
+- Detect anomalies: "Session X has been stuck on the same error for 10 minutes"
+
+**Active summarization (MEDIUM feasibility):**
+- Parse `last_assistant_message` from Stop events to understand what each session accomplished
+- Use a cheap/fast model (Haiku, or even local LLM) to synthesize multi-session summaries
+- Cost: ~$0.01 per summary if using Haiku on accumulated event text
+
+**Instruction relay (LOW feasibility for v2.0):**
+- Requires solving the "send input to running session" problem (see above -- it is hard)
+- Agent Teams solve this within their own framework (shared task list, messaging)
+- For independent sessions started by the user, there is no injection mechanism
+- Possible future: if Claude Code adds an API for sending messages to running sessions
+
+### Recommendation for v2.0
+
+**Build the passive monitor first.** A Manager AI that watches the event stream and generates natural-language summaries is achievable and valuable. It does not need to control sessions -- it reports to the user, who then decides what to do.
+
+Implementation: A server-side module that accumulates events, and periodically (or on demand) calls a Claude API endpoint to generate a summary. Display the summary in a dedicated panel on the dashboard.
+
+Start with: "What is happening across all my sessions right now?" -- answerable from event data alone.
+
+Defer: instruction relay, active task management, cross-session coordination. These require deeper Claude Code API integration that does not exist yet.
+
+---
+
+## Screen Layout -- Research Findings
+
+### NOC / Mission Control patterns that apply
+
+From NOC and trading floor dashboard research:
+
+1. **Grid of equals** -- 5-10 panels of equal size, each monitoring one entity. Works when entities are peers (sessions are peers).
+2. **Focus + context** -- One large panel for the "active" item, surrounded by smaller panels for the rest. Works when user is primarily watching one session.
+3. **Status wall** -- Compact status indicators (green/yellow/red) with drill-down on click. Works for overview when many sessions are running.
+4. **Sidebar config** -- Configuration panels slide in from the side, don't take permanent screen space. Voice/push settings belong here.
+
+### Recommended layout
+
+**Primary: Responsive grid of session cards**
+- CSS Grid with `auto-fill` and `minmax(350px, 1fr)` -- cards flow to fill available space
+- On 16" screen at 1920px: 4-5 cards per row, showing 8-10 sessions without scrolling
+- Each card shows: project name, machine, state indicator (color), last event, duration, last message preview
+
+**Secondary: Focus mode**
+- Click a card to expand it into a detail view
+- Detail view shows full event timeline, tool activity, last messages, transcript link
+- Other cards shrink to compact status indicators (name + color dot)
+
+**Tertiary: Manager AI panel**
+- Fixed-position panel (bottom or side) showing the AI summary
+- Collapsible to not waste space when not needed
+- "Refresh summary" button or auto-refresh on significant events
+
+**Config: Sidebar**
+- Voice selection, push notification toggle, and other settings in a right-side drawer
+- Triggered by a gear icon in the header
+- Does not compete with session cards for screen space
+
+---
 
 ## Feature Dependencies
 
 ```
-[Voice notification (stop)]
-    └──requires──> [Reliable hook firing (Stop event)]
-                       └──requires──> [Project name resolution]
+Session card basics
+  -> Session timeline (needs per-session event storage)
+  -> Tool activity stream (needs PostToolUse hook)
+  -> Last message preview (needs Stop hook last_assistant_message)
+  -> Session grouping (needs project name resolution)
 
-[Voice notification (question)]
-    └──requires──> [Reliable hook firing (AskUserQuestion)]
-                       └──requires──> [Project name resolution]
+Cross-machine aggregation
+  -> Machine identity labels (needs hostname in events)
+  -> Verify remote hooks work (CodeBox, Lenovo, Mac)
 
-[Push notification]
-    └──requires──> [Service worker registration]
-                       └──requires──> [VAPID key generation]
-                       └──requires──> [User permission grant]
+Screen layout redesign
+  -> Sidebar config (moves existing config panel)
+  -> Compact vs expanded cards (layout modes)
+  -> Focus mode (detail expansion)
 
-[Visual toast]
-    └──requires──> [SSE/WebSocket real-time connection]
+Manager AI (passive)
+  -> AI-generated summaries (needs Claude API key or headless invocation)
+  -> Anomaly detection (needs event pattern analysis)
 
-[Live dashboard (session status)]
-    └──requires──> [SSE/WebSocket real-time connection]
-    └──requires──> [Project name resolution]
-
-[Multi-machine session aggregation]
-    └──requires──> [Live dashboard (session status)]
-    └──requires──> [Heartbeat/reporting protocol from remote machines]
-                       └──requires──> [Remote hook scripts (Lenovo, Mac)]
-
-[Activity feed]
-    └──requires──> [SSE/WebSocket real-time connection]
-    └──enhances──> [Notification history / log]
-
-[Notification history / log]
-    └──enhances──> [Activity feed]
-
-[Per-event notification config]
-    └──enhances──> [Voice notification (stop)]
-    └──enhances──> [Voice notification (question)]
-
-[Snooze / mute per project]
-    └──requires──> [Live dashboard (session status)]
+Session recordings
+  -> Session transcript viewer (needs JSONL parsing)
+  -> Playback UI (needs timeline component)
 ```
 
-### Dependency Notes
+---
 
-- **Voice notifications require reliable hook firing:** The current system fires randomly. Until hook reliability is fixed, no other feature matters — everything downstream depends on events arriving correctly.
-- **Project name resolution is a prerequisite for almost everything:** Sessions, toasts, push, and voice all need project identity. Fix this early.
-- **SSE/WebSocket is the backbone:** Toast, live dashboard, and activity feed all require a real-time server push connection. Replace polling before building any UI features.
-- **Push notifications require service worker + VAPID:** This is a one-time setup cost, not incremental. Must be done as a unit.
-- **Multi-machine aggregation is independent of local features:** Remote machines push events to CodeBox; CodeBox aggregates. Local CodeBox notifications can work before multi-machine is complete.
+## MVP Recommendation
 
-## MVP Definition
+**Phase 1: Session command center foundation**
+1. Rich session cards with all available hook data (session_id, project, machine, state, duration, last message)
+2. Screen-filling CSS Grid layout
+3. Session lifecycle state machine (working/done/attention/stale/error)
+4. Cross-machine aggregation verification (ensure remote hooks work)
+5. Sidebar config panel (move existing voice/push settings)
 
-### Launch With (v1)
+**Phase 2: Deep session context**
+1. PostToolUse hook integration for tool activity stream
+2. Session timeline (per-session event history)
+3. Question display with context and "focus" button (tmux integration)
+4. Compact vs expanded card toggle
+5. Session grouping by project
 
-Minimum viable product — what's needed to deliver the core value reliably.
+**Phase 3: Manager AI and advanced features**
+1. Passive Manager AI (event summarization via Claude API)
+2. Session transcript viewer (local sessions only)
+3. Error pattern detection
+4. Session recording / replay
 
-- [ ] Reliable hook firing for Stop and AskUserQuestion events — without this nothing works
-- [ ] Project name from folder basename — every notification must be identifiable
-- [ ] Voice notification on stop + question, differentiated by type — the primary value
-- [ ] SSE real-time connection replacing polling — eliminates timing bugs
-- [ ] Visual toast in-app for active tab — immediate visual confirmation
-- [ ] Browser push notification for background tab — must work when tab is hidden
-- [ ] Session status display: working / done / needs attention per project — awareness dashboard
+**Defer indefinitely:**
+- Input injection to running sessions (wait for Claude Code API support)
+- Active instruction relay (same blocker)
+- Token/cost tracking (parse on session end, not live)
 
-### Add After Validation (v1.x)
+---
 
-Features to add once core is working and reliable.
+## Outside-the-Box Ideas
 
-- [ ] Activity feed (chronological event log) — add once events are reliably captured
-- [ ] Multi-machine session aggregation (Lenovo + Mac) — add once CodeBox local is solid
-- [ ] Per-event voice configuration (rate, pitch per event type) — polish layer
-- [ ] Notification template editor — low-hanging UX improvement
-- [ ] Snooze / mute per project — quality-of-life once notification volume is understood
+Features nobody has built yet, ranging from practical to ambitious:
 
-### Future Consideration (v2+)
+### 1. Session "Heartbeat Map" (Practical)
+A visual representation of all sessions as pulsing dots on a grid. Pulse speed = activity rate. Color = state. Size = session age. Gives an instant gestalt of "how busy are my agents?" without reading any text. Like a heart monitor for your coding fleet.
 
-Features to defer until product-market fit is established.
+### 2. "What Did I Miss?" Digest (Practical)
+When you return to the dashboard after being away, generate a natural-language summary of everything that happened: "While you were gone: auth-service completed refactoring (3 commits), voice_notifications hit a rate limit and is waiting, testing passed all 47 tests." This is the killer feature of a Manager AI -- not real-time monitoring, but catch-up.
 
-- [ ] Notification history / persistent log — useful but adds storage layer complexity
-- [ ] Session duration tracking — nice context but not core to awareness
-- [ ] PWA manifest for mobile push — defer unless mobile use case emerges
+### 3. Session Dependency Graph (Ambitious)
+Track which files each session touches. Build a live graph showing session overlap. When Session A edits `src/auth.ts` and Session B reads `src/auth.ts`, draw a connection. This surfaces hidden conflicts that even the user might not realize exist.
 
-## Feature Prioritization Matrix
+### 4. "Hot Seat" Mode (Practical)
+When the user sits down at the dashboard, they often need to triage: which session needs me most urgently? Auto-sort sessions by urgency: questions first, errors second, recently completed third, working last. One-click to cycle through sessions that need attention. Like a doctor doing rounds.
 
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| Reliable hook firing (Stop + AskUserQuestion) | HIGH | MEDIUM | P1 |
-| Project name resolution | HIGH | LOW | P1 |
-| Voice notification (stop + question) | HIGH | LOW | P1 |
-| SSE real-time connection | HIGH | MEDIUM | P1 |
-| Visual toast in-app | HIGH | LOW | P1 |
-| Browser push notification | HIGH | MEDIUM | P1 |
-| Session status dashboard (working/done/needs attention) | HIGH | MEDIUM | P1 |
-| Activity feed | MEDIUM | MEDIUM | P2 |
-| Multi-machine session aggregation | HIGH | HIGH | P2 |
-| Per-event voice configuration | MEDIUM | LOW | P2 |
-| Notification template editor | MEDIUM | LOW | P2 |
-| Snooze / mute per project | MEDIUM | MEDIUM | P2 |
-| Notification history / log | LOW | MEDIUM | P3 |
-| Session duration tracking | LOW | LOW | P3 |
-| PWA manifest | LOW | LOW | P3 |
+### 5. Session Cost Heatmap (Moderate)
+After sessions end, parse their transcripts and compute token usage. Show a heatmap over time: "Tuesday afternoon you burned through $40 on the auth refactor." Useful for understanding spending patterns without needing real-time tracking.
 
-**Priority key:**
-- P1: Must have for launch — system is broken or incomplete without it
-- P2: Should have — meaningfully improves the tool after core works
-- P3: Nice to have — future consideration once use is established
+### 6. Cross-Session Knowledge Transfer (Ambitious, future)
+When one session discovers something relevant to another (e.g., "found a bug in the shared utils"), surface it as a notification to the other session's card. Currently impossible without input injection, but the detection part is feasible from PostToolUse events.
 
-## Competitor Feature Analysis
+### 7. "Replay My Day" (Moderate)
+A timeline view of the entire day's coding activity across all sessions and machines. Scrub through time to see what was happening at any moment. Useful for daily standup preparation, time tracking, and understanding your own workflow patterns.
 
-No direct competitors exist for Claude Code-specific multi-session voice dashboards. The closest analogues are:
+### 8. Smart Notification Batching (Practical)
+When 3 sessions complete within 10 seconds of each other, don't fire 3 separate voice notifications. Instead: "Three sessions completed: auth, testing, and dashboard." Requires notification aggregation with a short delay window.
 
-| Feature | alexop.dev hook setup | ksred.com session dashboard | Our Approach |
-|---------|----------------------|----------------------------|--------------|
-| Voice TTS | System macOS voice | None | Edge-TTS neural voices (higher quality) |
-| Multi-machine | No | No (reads local ~/.claude only) | Yes — CodeBox as central hub, remote machines push events |
-| Browser push | No | No | Yes — Web Push API |
-| Session status | No | Yes (token usage, cost, active status) | Yes — working/done/needs attention with project name |
-| Real-time transport | Not applicable | WebSocket (Go backend) | SSE (simpler, sufficient for unidirectional) |
-| Notification config | No | No | Yes — per-event type voice/template |
-| Dashboard UI | Terminal only | Separate app | Single polished SPA (same server) |
-
-Key differentiator: the only system combining voice notifications + browser push + visual dashboard + multi-machine awareness in a single app with no external service dependencies.
+---
 
 ## Sources
 
-- [alexop.dev — Claude Code Notification Hooks](https://alexop.dev/posts/claude-code-notification-hooks/)
-- [stacktoheap.com — Having Fun with Claude Code Hooks (voice notifications)](https://stacktoheap.com/blog/2025/08/03/having-fun-with-claude-code-hooks/)
-- [ksred.com — Managing Multiple Claude Code Sessions: Building a Real-Time Dashboard](https://www.ksred.com/managing-multiple-claude-code-sessions-building-a-real-time-dashboard/)
-- [notilayer.com — SSE vs WebSockets for SaaS Notifications](https://www.notilayer.com/blog/sse-vs-websockets-notifications)
-- [courier.com — How to Build a Notification Center for Web and Mobile Apps](https://www.courier.com/blog/how-to-build-a-notification-center-for-web-and-mobile-apps)
-- [knock.app — Top 5 Real-Time Notification Services](https://knock.app/blog/the-top-real-time-notification-services-for-building-in-app-notifications)
-- [patternfly.org — Notification Drawer Design Guidelines](https://www.patternfly.org/components/notification-drawer/design-guidelines/)
-- [rxdb.info — WebSockets vs SSE vs Long-Polling comparison](https://rxdb.info/articles/websockets-sse-polling-webrtc-webtransport.html)
-- [code.claude.com — Automate workflows with hooks](https://code.claude.com/docs/en/hooks-guide)
-
----
-*Feature research for: Developer voice notification system + coding dashboard (Claude Code)*
-*Researched: 2026-03-26*
+- [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks) -- HIGH confidence, official documentation
+- [Claude Code Headless Mode / Agent SDK](https://code.claude.com/docs/en/headless) -- HIGH confidence, official documentation
+- [Claude Code Agent Teams](https://code.claude.com/docs/en/agent-teams) -- HIGH confidence, official documentation (experimental feature)
+- [Feature Request: Expose Session Metadata](https://github.com/anthropics/claude-code/issues/17188) -- MEDIUM confidence, community issue
+- [Feature Request: Programmatic Input in Interactive Mode](https://github.com/anthropics/claude-code/issues/15553) -- HIGH confidence, confirms input injection limitation
+- [simonw/claude-code-transcripts](https://github.com/simonw/claude-code-transcripts) -- HIGH confidence, working tool for JSONL parsing
+- [ccusage](https://ccusage.com/) -- HIGH confidence, working tool for token/cost analysis
+- [Claude-Code-Usage-Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor) -- MEDIUM confidence, community tool
+- [Mission Control by Builderz](https://mc.builderz.dev) -- MEDIUM confidence, open-source agent orchestration dashboard
+- [Overstory multi-agent orchestration](https://github.com/jayminwest/overstory) -- MEDIUM confidence, community project
+- [NOC Dashboard Design](https://alertops.com/noc-dashboard-examples/) -- MEDIUM confidence, general dashboard patterns
+- [Gridstack.js](https://gridstackjs.com/) -- HIGH confidence, dashboard grid library
+- [CSS Grid Dashboard Layouts](https://blog.pixelfreestudio.com/how-to-use-css-grid-for-customizable-dashboard-layouts/) -- MEDIUM confidence, tutorial

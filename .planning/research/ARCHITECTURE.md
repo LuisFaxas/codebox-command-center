@@ -1,380 +1,661 @@
-# Architecture Research
+# Architecture Patterns: Center Console Integration
 
-**Domain:** Real-time notification system + live coding dashboard (single-user, single-server)
-**Researched:** 2026-03-26
-**Confidence:** HIGH
+**Domain:** Session command center for Claude Code notifications
+**Researched:** 2026-03-28
+**Overall confidence:** HIGH (based on existing codebase analysis + official Claude Code docs)
 
-## Standard Architecture
+## Current Architecture Snapshot
 
-### System Overview
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        HOOK LAYER (event producers)                  │
-│                                                                      │
-│  ┌───────────────────┐    ┌───────────────────┐                     │
-│  │  notify-done.sh   │    │  notify-trigger.js│                     │
-│  │  (CodeBox local)  │    │  (Lenovo remote)  │                     │
-│  │  writes file      │    │  HTTP GET         │                     │
-│  └────────┬──────────┘    └────────┬──────────┘                     │
-│           │                        │                                 │
-└───────────┼────────────────────────┼─────────────────────────────────┘
-            │                        │
-┌───────────▼────────────────────────▼─────────────────────────────────┐
-│                      SERVER LAYER (CodeBox :3099)                     │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │                    Event Bus (EventEmitter)                   │    │
-│  │   trigger received → emit('notification', {type, project})   │    │
-│  └──────────────┬──────────────────────┬────────────────────────┘    │
-│                 │                      │                              │
-│  ┌──────────────▼───────┐  ┌───────────▼──────────────────────────┐  │
-│  │   Session Store      │  │   SSE Broadcaster                    │  │
-│  │   (in-memory Map)    │  │   (Set of response streams)          │  │
-│  │   project → {status, │  │   fan-out to all connected clients   │  │
-│  │   last seen, type}   │  └──────────────────────────────────────┘  │
-│  └──────────────────────┘                                            │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │                    TTS Engine (edge-tts)                      │    │
-│  │   generateCached(type, project) → WAV file                   │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │                    Web Push Sender                            │    │
-│  │   web-push + VAPID → push subscription endpoints             │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-│  data/                                                               │
-│    config.json     (voice/template prefs)                            │
-│    subscriptions/  (push subscription endpoints, one per client)     │
-│    cache/          (WAV files, type--project.wav)                    │
-│    samples/        (audition WAVs)                                   │
-└──────────────────────────────────────────────────────────────────────┘
-            │ SSE stream + HTTP                │ Web Push (external)
-┌───────────▼──────────────────────────────────▼──────────────────────┐
-│                      CLIENT LAYER (browser tab)                      │
-│                                                                      │
-│  ┌───────────────────┐  ┌───────────────┐  ┌───────────────────┐   │
-│  │  SSE Connection   │  │ Audio Player  │  │  Service Worker   │   │
-│  │  EventSource API  │  │ plays WAV     │  │  handles push     │   │
-│  │  receives events  │  │ on notify evt │  │  shows OS toast   │   │
-│  └───────────────────┘  └───────────────┘  └───────────────────┘   │
-│                                                                      │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │                    Dashboard UI                               │   │
-│  │   session cards: project / status / last-seen / type         │   │
-│  │   activity feed: stream of recent notification events        │   │
-│  │   config panel: voice picker, template editor                │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-### Component Responsibilities
-
-| Component | Responsibility | Communicates With |
-|-----------|----------------|-------------------|
-| Hook (local shell) | Write trigger.json on CodeBox Stop event | Server file watcher |
-| Hook (remote node) | HTTP GET /trigger from Lenovo/Mac | Server /trigger endpoint |
-| /trigger endpoint | Accept inbound events, write to session store, emit to event bus | Event bus, session store |
-| Event Bus (EventEmitter) | Decouple trigger receipt from fan-out; single place to add listeners | SSE broadcaster, web push sender |
-| Session Store (Map) | Track current status of every active project (in-memory) | /trigger endpoint writes, /sessions endpoint reads |
-| SSE Broadcaster | Hold open response streams for all connected browser clients; fan-out events | All open SSE connections |
-| TTS Engine | Shell out to edge-tts; cache WAVs keyed by type+project | /notify-wav endpoint, /trigger (pre-warm) |
-| Web Push Sender | Send OS-level notifications via VAPID to browser push endpoints | Service worker on each client |
-| Service Worker | Register push subscription; handle push events when tab is backgrounded | Web Push Sender, browser Notification API |
-| Dashboard UI | Render live session grid and activity feed; host config panel | SSE Connection, Audio Player, Service Worker |
-
-## Recommended Project Structure
+The existing system is clean and well-separated:
 
 ```
-voice_notifications/
-├── server.js                  # Entry point — assembles and starts server
-├── src/
-│   ├── events.js              # EventEmitter singleton (event bus)
-│   ├── sessions.js            # Session store (in-memory Map, read/write API)
-│   ├── sse.js                 # SSE broadcaster (manages client Set, fan-out)
-│   ├── tts.js                 # edge-tts wrapper (generateCached, clearCache, samples)
-│   ├── push.js                # web-push sender (subscribe, send, VAPID setup)
-│   ├── config.js              # Config load/save (voice+template prefs, disk-backed)
-│   └── routes/
-│       ├── trigger.js         # POST/GET /trigger — hook entry point
-│       ├── stream.js          # GET /events — SSE connection handler
-│       ├── audio.js           # GET /notify-wav, /wav/:file — WAV serving
-│       ├── push.js            # POST /push-subscribe, POST /push-unsubscribe
-│       └── settings.js        # GET /config, POST /select, POST /generate, GET /samples
-├── public/
-│   ├── index.html             # Dashboard SPA (extracted from embedded string)
-│   ├── app.js                 # Client JS (SSE client, audio player, UI updates)
-│   ├── sw.js                  # Service worker (push subscription + notification display)
-│   └── style.css              # Styles (optional extraction)
-├── hooks/
-│   ├── notify-done.sh         # Local CodeBox hook (currently writes file)
-│   └── notify-trigger.js      # Remote hook for Lenovo/any machine
-└── data/                      # Runtime data (gitignored)
-    ├── config.json
-    ├── subscriptions.json      # Persisted push subscription objects
-    ├── cache/
-    └── samples/
+Hook Scripts (remote/local)
+    |
+    | HTTP POST /trigger
+    v
+server.js (router, ~195 lines)
+    |-- sse.js (event bus, emit/subscribe, 100-event buffer)
+    |-- config.js (JSON file persistence, voice settings)
+    |-- tts.js (edge-tts subprocess, WAV caching)
+    |-- push.js (VAPID web push)
+    |
+    v
+public/index.html (SPA, ~1400 lines)
+    |-- Client-side Map() for sessions
+    |-- SSE EventSource for real-time events
+    |-- Activity feed (in-memory array, max 50)
+    |-- Toast/audio notification playback
 ```
 
-### Structure Rationale
+**Key observation:** Sessions exist only in the browser's memory. No server-side session state. No persistence. Reload = gone.
 
-- **src/**: Server logic separated by concern. Events.js is the pivot — everything talks through it, nothing talks around it.
-- **src/routes/**: Each route file owns one URL namespace, imports from src/ modules. Avoids the current 422-line monolith growing into an 800-line monolith.
-- **public/**: Static files served from disk, not embedded in JS strings. This is the single most important structural change to enable maintainable UI work.
-- **hooks/**: Unchanged. Hook scripts stay flat — they're installed on remote machines and must stay simple.
-- **data/**: All runtime files. `subscriptions.json` is new — stores push subscription objects across server restarts.
+---
 
-## Architectural Patterns
+## 1. Session Data Model
 
-### Pattern 1: Central Event Bus via Node.js EventEmitter
+### Current State
 
-**What:** A single EventEmitter instance in `src/events.js` is the only place notification events flow through. `/trigger` writes to session store and emits `'notification'`. SSE broadcaster and web push sender are listeners — they don't know about each other or about hooks.
+Sessions live in a client-side `Map()` keyed by `sessionId`. Each entry:
 
-**When to use:** Any time you have one producer (hook) and multiple consumers (SSE fan-out, push send, session update, activity log). Adding a new consumer — say, a Slack webhook — means adding one listener, not modifying the trigger handler.
-
-**Trade-offs:** In-process only — fine for a single Node.js process. If this ever became multi-process, you'd swap the EventEmitter for Redis Pub/Sub. That refactor is minimal because the interface is identical.
-
-**Example:**
 ```javascript
-// src/events.js
-const EventEmitter = require('events');
-module.exports = new EventEmitter();
-
-// src/routes/trigger.js
-const bus = require('../events');
-const sessions = require('../sessions');
-// ...
-sessions.update(project, { type, status: 'done', lastSeen: Date.now() });
-bus.emit('notification', { type, project, ts: Date.now() });
-
-// src/sse.js
-const bus = require('./events');
-bus.on('notification', (event) => {
-  broadcast({ type: 'notification', data: event });
-});
+{
+  project: string,      // from hook
+  machine: string,      // hostname
+  status: 'working' | 'done' | 'attention' | 'stale',
+  lastActivity: number, // Date.now()
+  startedAt: number     // first seen
+}
 ```
 
-### Pattern 2: SSE for Server-to-Client Push (not WebSocket)
+Status transitions are primitive: `trigger` event sets `done` or `attention`, `session:alive` sets `working`, a 5-minute timer sets `stale`, 30-minute timer deletes.
 
-**What:** Use Server-Sent Events (`text/event-stream`) for all server-to-client data: notification events, session state updates, activity feed entries. The browser uses the native `EventSource` API.
+### Recommended: Server-Side Session Store
 
-**When to use:** This system is entirely unidirectional — the server pushes, clients consume. Client-to-server communication (voice selection, template save) remains plain HTTP POST. WebSocket buys nothing here and adds complexity (manual reconnect logic, binary framing, protocol upgrade).
+**Move sessions to the server.** Reasons:
+1. Multiple browser tabs/clients should see the same session state
+2. Session history must survive page reloads
+3. Manager AI needs access without a browser
+4. Cross-machine aggregation requires a single source of truth
 
-**Trade-offs:** SSE runs over standard HTTP, auto-reconnects on disconnect, works through Caddy without additional proxy config, and benefits from HTTP/2 multiplexing if enabled. The only downside is the HTTP/1.1 6-connection browser limit per domain — irrelevant here since this is a single-tab application on a private network.
+**Proposed schema:**
 
-**Example:**
 ```javascript
-// src/sse.js — broadcaster
-const clients = new Set();
+// sessions.js — new module
+const sessions = new Map(); // sessionId -> Session
 
-function addClient(res) {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no',   // required for Caddy/nginx proxies
+// Session object
+{
+  sessionId: string,        // from Claude Code (uuid)
+  project: string,          // resolved project name
+  machine: string,          // hostname
+  cwd: string,              // working directory
+  status: 'working' | 'done' | 'attention' | 'stale' | 'idle',
+  firstSeen: number,        // timestamp
+  lastActivity: number,     // timestamp of last event
+  lastEventType: string,    // 'done', 'question', 'alive'
+  eventCount: number,       // total events received
+  events: Event[],          // recent event history (last N)
+  lastMessage: string|null, // from Stop hook's last_assistant_message (future)
+}
+
+// Event object (stored per session, last 20)
+{
+  type: string,             // 'done', 'question', 'alive', 'start'
+  timestamp: number,
+  hookEvent: string|null,   // raw hook_event_name
+}
+```
+
+**Status lifecycle (server-managed):**
+
+```
+SessionStart hook  -->  'working'
+PostToolUse hook   -->  'working' (activity heartbeat)
+Stop hook          -->  'done'
+Notification hook  -->  'attention'
+5 min no activity  -->  'stale'
+30 min no activity -->  removed from active, archived
+```
+
+**New module:** `sessions.js`
+**Modified:** `server.js` (route /trigger updates sessions, new endpoint /sessions returns state)
+**Modified:** `public/index.html` (reads from server on load, SSE for updates)
+
+### Confidence: HIGH
+This is straightforward state management. The existing SSE bus already carries the right data.
+
+---
+
+## 2. Manager AI Integration
+
+### Architecture Decision: API Calls, Not a Separate Process
+
+The Manager AI should NOT be:
+- A separate long-running Claude Code session (expensive, wasteful idle time)
+- A separate Node.js process (unnecessary complexity)
+- A persistent agent (overkill for status monitoring)
+
+The Manager AI SHOULD be:
+- **On-demand Claude API calls** triggered by specific conditions
+- Called from the server when noteworthy events occur
+- Results pushed to clients via SSE
+
+**Why:** The Manager AI's job is summarization and pattern detection, not autonomous action. It observes and reports. An API call with context is the right abstraction.
+
+### Integration Architecture
+
+```
+server.js
+    |
+    |-- sessions.js (session store)
+    |-- manager.js  (NEW — AI monitoring layer)
+    |       |
+    |       |-- Triggers: session attention, periodic summary, user request
+    |       |-- Input: session state snapshot, recent events
+    |       |-- Output: status summary, recommendations, alerts
+    |       |-- Method: claude -p --bare with structured JSON output
+    |       |
+    |       v
+    |   Claude API (via Agent SDK CLI)
+    |       |
+    |       v
+    |   SSE emit('manager:insight', { ... })
+    |
+    v
+Browser (displays manager insights)
+```
+
+**Implementation approach:**
+
+```javascript
+// manager.js
+import { exec } from 'child_process';
+
+const COOLDOWN_MS = 30000; // Don't call AI more than once per 30s
+let lastCall = 0;
+
+export function analyzeSessionState(sessions, trigger) {
+  const now = Date.now();
+  if (now - lastCall < COOLDOWN_MS) return;
+  lastCall = now;
+
+  const snapshot = JSON.stringify({
+    trigger, // what prompted this analysis
+    sessions: Array.from(sessions.values()),
+    timestamp: new Date().toISOString()
   });
-  res.write('retry: 3000\n\n');  // tell client to retry after 3s on disconnect
-  clients.add(res);
-  res.on('close', () => clients.delete(res));
-}
 
-function broadcast(event) {
-  const payload = `data: ${JSON.stringify(event)}\n\n`;
-  clients.forEach(res => res.write(payload));
+  const prompt = `You are monitoring Claude Code sessions. Analyze this snapshot and provide a brief status report. Be concise — 1-2 sentences per notable session. Flag anything that needs user attention.`;
+
+  exec(
+    `echo '${snapshot}' | claude -p --bare --output-format json "${prompt}"`,
+    { timeout: 30000 },
+    (err, stdout) => {
+      if (err) return;
+      try {
+        const result = JSON.parse(stdout);
+        emit('manager:insight', { text: result.result, timestamp: now });
+      } catch(e) {}
+    }
+  );
 }
 ```
 
-### Pattern 3: In-Memory Session Store with Disk Config
+**Trigger conditions for Manager AI calls:**
+1. Session enters 'attention' state (question asked)
+2. User explicitly requests a status update (button click)
+3. Periodic summary (every 5-10 minutes when sessions are active)
+4. Anomaly: session stuck in 'working' for an unusual duration
 
-**What:** Track all known project sessions in a `Map` keyed by project name. Each entry holds `{ status, type, lastSeen, machine }`. This is the source of truth for the dashboard "session grid" view.
+**Cost control:** The Manager AI uses `claude -p --bare` which is a fresh invocation each time. With the 30-second cooldown and event-driven triggers, this means at most ~120 API calls per hour in heavy use, typically far fewer. Each call is small (session snapshot context).
 
-**When to use:** Single-process, single-user system. No need for a database. The Map initializes empty on startup; sessions appear as hooks fire. Config (voice, template preferences) is disk-backed (`config.json`) since it must survive restarts.
+**Alternative considered:** Using the Anthropic Messages API directly (via `fetch` to `api.anthropic.com`). This would be leaner than spawning a CLI process, but requires managing an API key. Since the user already has Claude Code with authentication configured, `claude -p` leverages existing auth. If latency becomes an issue, switch to direct API calls later.
 
-**Trade-offs:** Sessions are ephemeral — restarting the server clears them. For this use case that is correct behavior: stale sessions from a previous day should not appear. If persistence became important, appending to a simple JSON log file would suffice.
+### New module: `manager.js`
+### Modified: `server.js` (import manager, call on trigger events)
+### Modified: `public/index.html` (listen for `manager:insight` SSE events, display)
 
-**Example:**
+### Confidence: MEDIUM
+The `claude -p --bare` approach works technically. Uncertainty is around:
+- Whether the latency (2-5 seconds per call) is acceptable for the UX
+- Whether the cost profile is reasonable with heavy multi-session use
+- Whether structured output from `claude -p` is reliable enough for display
+
+**Recommendation:** Build the Manager AI as Phase 3 or 4, after sessions and UI are solid. Keep it behind a feature flag. Start with user-triggered summaries only, then add automatic triggers.
+
+---
+
+## 3. Bidirectional Communication
+
+### SSE + POST Is the Right Pattern (No WebSockets Needed)
+
+The current SSE setup (server -> client) combined with regular HTTP POST (client -> server) is sufficient. This is the exact pattern MCP originally used and it works well for this use case.
+
+**Why not WebSocket:**
+- SSE already works, is simpler, auto-reconnects with `EventSource`
+- The server already handles POST for /trigger, /select, /subscribe
+- Adding WebSocket adds a parallel connection to maintain
+- No need for sub-millisecond bidirectional latency
+
+**Communication paths for Center Console features:**
+
+```
+User Action                    Path                          Server Action
+-----------                    ----                          -------------
+View sessions                  GET /sessions                 Return session store
+Dismiss notification           POST /sessions/:id/dismiss    Update session status
+Mark as seen                   POST /sessions/:id/seen       Clear attention flag
+Request AI summary             POST /manager/analyze         Trigger manager.js
+Send response to session       POST /sessions/:id/respond    (future - see below)
+
+Server Event                   Path                          Client Action
+------------                   ----                          -------------
+New trigger                    SSE 'trigger'                 Update session card
+Session state change           SSE 'session:update'          Re-render card
+Manager insight                SSE 'manager:insight'         Show insight panel
+Config change                  SSE 'config:updated'          Sync config
+```
+
+### "Respond to a Session" — The Hard Problem
+
+Sending a response to a running Claude Code session is NOT currently possible through hooks or the CLI. Claude Code sessions are interactive terminal processes. The options:
+
+1. **Copy-to-clipboard + notification** (pragmatic, Phase 1): The dashboard shows "Session X needs attention at Project Y." User clicks, gets a deep link or clipboard copy of the project path, then switches to their terminal. This is what v2.0 should ship.
+
+2. **`claude -p --resume <session_id>`** (possible but limited): This continues a conversation in headless mode. It does NOT inject input into a running interactive session. It creates a new turn in the transcript. The running interactive session won't see it.
+
+3. **Terminal multiplexer integration** (future, complex): Using tmux/screen to send keystrokes to the terminal pane running Claude Code. Technically possible (`tmux send-keys -t <pane> "response text" Enter`) but fragile and requires all sessions to run in tmux.
+
+4. **Agent SDK with custom transport** (future, speculative): Using the TypeScript/Python Agent SDK to create sessions that accept input programmatically. This would require running Claude Code sessions via the SDK rather than the CLI, which is a fundamental architecture change.
+
+**Recommendation:** Ship option 1 (copy + navigate) for v2.0. Explore option 3 as an optional enhancement if the user runs sessions in tmux (which is common on CodeBox). Do NOT pursue option 2 or 4 — they change the session model.
+
+### New endpoints: `/sessions`, `/sessions/:id/dismiss`, `/sessions/:id/seen`, `/manager/analyze`
+### Modified: `sse.js` (new event types: `session:update`, `manager:insight`)
+### Modified: `public/index.html` (POST calls for user actions)
+
+### Confidence: HIGH for SSE+POST pattern, MEDIUM for session response approach
+
+---
+
+## 4. Cross-Machine Hooks
+
+### Current State
+
+The hook script `hooks/notify-trigger.cjs` already works cross-machine. It:
+- Reads JSON from stdin (Claude Code provides `session_id`, `cwd`, `hook_event_name`)
+- Resolves project name from folder basename
+- POSTs to `VOICE_NOTIFY_URL` (defaults to CodeBox's Tailscale IP)
+
+**Problem:** The hook script must be copied to each machine manually. Claude Code settings must be configured per-machine.
+
+### Recommended: Richer Hook Events
+
+Currently only `Stop` and `Notification` events are hooked. With 21 lifecycle events now available in Claude Code, we should capture more:
+
+**Priority hook events for the command center:**
+
+| Hook Event | Value for Dashboard | Priority |
+|------------|-------------------|----------|
+| `SessionStart` | Know when sessions begin | HIGH |
+| `Stop` | Know when Claude finishes (existing) | HIGH |
+| `Notification` | Attention needed (existing) | HIGH |
+| `PostToolUse` | Activity heartbeat, know Claude is working | MEDIUM |
+| `SessionEnd` | Clean removal from dashboard | MEDIUM |
+| `SubagentStart/Stop` | Track parallel agents | LOW |
+
+**Updated hook payload (extend existing):**
+
 ```javascript
-// src/sessions.js
-const sessions = new Map();
+// hooks/notify-trigger.cjs additions
+const payload = {
+  type,                          // existing
+  project,                       // existing
+  sessionId,                     // existing
+  machine: os.hostname(),        // existing
+  cwd,                           // existing
+  timestamp: new Date().toISOString(), // existing
+  // NEW fields:
+  hookEvent: hookInput.hook_event_name,  // raw event name
+  lastMessage: hookInput.last_assistant_message || null, // from Stop event
+  toolName: hookInput.tool_name || null,  // from PostToolUse
+  agentType: hookInput.agent_type || null, // from subagent events
+};
+```
 
-function update(project, fields) {
-  const existing = sessions.get(project) || {};
-  sessions.set(project, { ...existing, ...fields });
+### Simplifying Deployment
+
+**Option A: One-liner install script** (recommended)
+
+```bash
+# Install hook on any machine
+curl -s http://100.123.116.23:3099/install-hook | bash
+```
+
+The server serves a shell script that:
+1. Downloads `notify-trigger.cjs` to `~/.claude/hooks/`
+2. Adds hook entries to `~/.claude/settings.json` (or creates it)
+3. Tests connectivity to the server
+
+**Option B: Server-side hook registration API**
+
+Instead of hooks POSTing to the server, machines could register and the server could poll them. This inverts the model and is worse — hooks are push-based and low-latency.
+
+**Recommendation:** Option A. Add a `/install-hook` endpoint to the server that serves a self-contained installer script. The hook file itself is already cross-platform (Node.js CJS).
+
+### New endpoint: `/install-hook` (serves installer script)
+### Modified: `hooks/notify-trigger.cjs` (richer payload, more hook events)
+### New file: `hooks/claude-settings-snippet.json` (hook configuration template)
+
+### Confidence: HIGH
+
+---
+
+## 5. UI Architecture
+
+### Can a Single-File SPA Scale to a Command Center?
+
+The current `public/index.html` is ~1400 lines: ~860 lines CSS, ~540 lines JavaScript. For a command center, expect 3-4x growth: ~4000-5000 lines total.
+
+**Verdict: Split, but not into a framework.**
+
+A 5000-line single file is manageable but painful for:
+- Finding code sections (scrolling)
+- Parallel development (merge conflicts)
+- Testing individual components
+
+A framework (React, Vue) would be overkill for:
+- Single-user app
+- No build step currently (and that's a strength)
+- No component reuse across projects
+- The existing vanilla JS works well
+
+### Recommended: ES Module Split with Import Maps
+
+```html
+<!-- index.html — stays as the shell -->
+<script type="importmap">
+{
+  "imports": {
+    "./state.js": "./modules/state.js",
+    "./sse.js": "./modules/sse.js",
+    "./sessions.js": "./modules/sessions.js",
+    "./feed.js": "./modules/feed.js",
+    "./toasts.js": "./modules/toasts.js",
+    "./config.js": "./modules/config-panel.js",
+    "./manager.js": "./modules/manager-panel.js",
+    "./audio.js": "./modules/audio.js"
+  }
+}
+</script>
+<script type="module" src="./modules/app.js"></script>
+```
+
+**Module structure:**
+
+```
+public/
+  index.html          -- HTML shell + CSS (no JS)
+  modules/
+    app.js            -- Entry point, imports all modules
+    state.js          -- Shared state (sessions Map, feed array, config)
+    sse.js            -- SSE connection, event routing
+    sessions.js       -- Session grid rendering, card templates
+    feed.js           -- Activity feed rendering
+    toasts.js         -- Toast notification system
+    config-panel.js   -- Config sidebar
+    manager-panel.js  -- Manager AI panel (NEW)
+    audio.js          -- Voice playback
+    utils.js          -- escapeHtml, formatDuration, etc.
+```
+
+**Why this approach:**
+- No build step needed — browsers support ES modules natively
+- Import maps let us use bare specifiers (cleaner imports)
+- Each module is 150-400 lines — easy to navigate
+- CSS stays in index.html (it's declarative, splitting it adds complexity without value)
+- Server already serves static files from `public/`
+
+**What needs to change in `server.js`:** Add a static file handler for `public/modules/*.js` files. Currently the server only serves `index.html` and `sw.js` explicitly. Need a general static file handler for the `public/` directory.
+
+### Modified: `server.js` (add static file serving for public/ directory)
+### Modified: `public/index.html` (extract JS into modules, keep HTML + CSS)
+### New directory: `public/modules/` (8-10 JS modules)
+
+### Confidence: HIGH
+ES modules in browsers have been stable since 2018. Import maps are supported in all modern browsers.
+
+---
+
+## 6. Data Persistence
+
+### What to Persist and How
+
+| Data | Persist? | Store | Retention |
+|------|----------|-------|-----------|
+| Active sessions | In-memory Map | `sessions.js` | Until stale (30 min) |
+| Session history | Yes | JSON file | 7 days rolling |
+| Event log | Yes | JSON file | 24 hours rolling |
+| Voice config | Yes (existing) | `config.json` | Forever |
+| Push subscriptions | Yes (existing) | `subscriptions.json` | Forever |
+| Manager AI insights | Yes | JSON file | 24 hours |
+| TTS cache | Yes (existing) | WAV files | Forever |
+
+### Use JSON Files, Not SQLite
+
+**Reasoning:**
+1. **Zero dependencies** — the project currently has only `web-push` as an npm dependency. Adding `better-sqlite3` requires native compilation (node-gyp, Python, C++). That's heavy for what we need.
+2. **Node.js built-in SQLite is still experimental** — even in Node v25 it requires `--experimental-sqlite`. Not stable enough for production.
+3. **Data volume is tiny** — even with 20 sessions and 1000 events/day, we're talking kilobytes. JSON file reads are sub-millisecond at this scale.
+4. **Append-only patterns work** — event logs are append-only. Session snapshots are small. JSON lines (JSONL) format handles this well.
+
+**Persistence implementation:**
+
+```javascript
+// persistence.js — new module
+
+// Session snapshots: written every 60s and on shutdown
+// Format: data/sessions.json
+{
+  sessions: { [sessionId]: Session },
+  savedAt: timestamp
 }
 
-function getAll() {
-  return Array.from(sessions.entries()).map(([project, data]) => ({ project, ...data }));
-}
+// Event log: append-only JSONL, rotated daily
+// Format: data/events/YYYY-MM-DD.jsonl
+{"type":"trigger","sessionId":"abc","project":"foo","timestamp":1234567890}
+
+// Manager insights: append-only JSONL, rotated daily
+// Format: data/insights/YYYY-MM-DD.jsonl
+{"text":"All sessions idle","trigger":"periodic","timestamp":1234567890}
 ```
 
-### Pattern 4: Web Push + Service Worker for Background Notifications
+**Cleanup:** A daily timer deletes files older than retention period.
 
-**What:** Register a Service Worker in the browser to receive Web Push API notifications. The server holds VAPID keys and push subscription endpoints (one per browser client). On each notification event, `web-push` sends to all registered endpoints via the Push Service (Google/Mozilla infrastructure). The Service Worker's `push` event handler displays an OS notification — this works even when the browser tab is backgrounded or on a locked screen.
+**Recovery on restart:** Read `sessions.json` to restore active sessions. Sessions older than 30 minutes are discarded. This means a server restart doesn't lose session state.
 
-**When to use:** The user runs 5+ concurrent sessions and may not be watching the browser tab. Browser Push is the only mechanism that reliably surfaces a notification when the tab is inactive. The `web-push` npm package handles all VAPID signing and protocol details.
+### New module: `persistence.js`
+### New directories: `data/events/`, `data/insights/`
+### Modified: `server.js` (save on shutdown via `process.on('SIGTERM')`)
 
-**Trade-offs:** Requires HTTPS (or localhost) — fine because Caddy provides TLS for `*.codebox.local` and the Tailscale address can use HTTPS. Push subscriptions expire or become invalid if the browser reinstalls; the server must handle 410 Gone responses by deleting the subscription. Push delivery is not guaranteed (Google/Mozilla push services have SLA limitations) — but for a local network, delivery is reliably sub-second.
+### Confidence: HIGH
+JSON files at this scale are the right choice. If the project ever needs complex queries, migrate to SQLite then.
 
-## Data Flow
+---
 
-### Notification Event Flow
+## 7. Build Order
 
-```
-[Claude Code hook fires]
-        ↓
-[Hook writes trigger.json  OR  HTTP GET /trigger]
-        ↓
-[/trigger handler]
-  → writes session store: project status = 'done'|'question', lastSeen = now
-  → bus.emit('notification', { type, project, ts })
-        ↓
-[Event Bus (EventEmitter) — synchronous fan-out]
-  ├→ [SSE Broadcaster] → writes SSE frame to all open EventSource connections
-  │      ↓
-  │   [Browser tab(s)]
-  │      ├→ Audio Player: fetch /notify-wav → play WAV
-  │      ├→ UI update: update session card for project
-  │      └→ append to activity feed
-  │
-  └→ [Web Push Sender] → web-push.sendNotification() to all subscriptions
-         ↓
-      [Push Service (Google/Mozilla)]
-         ↓
-      [Service Worker push event] → new Notification(title, options)
-         ↓
-      [OS notification toast — works even with tab closed]
-```
-
-### Client Initial Load Flow
+### Dependency Graph
 
 ```
-[Browser opens app URL]
-        ↓
-[GET /] → serve public/index.html
-[GET /app.js, /sw.js] → serve static files
-        ↓
-[JS: navigator.serviceWorker.register('/sw.js')]
-[JS: pushManager.subscribe() → POST /push-subscribe]
-[JS: fetch /sessions → get current session state → render dashboard]
-[JS: new EventSource('/events') → open SSE connection]
-        ↓
-[Server: SSE connection opens]
-  → immediately emit 'init' event with current sessions snapshot
-        ↓
-[Client: renders live session grid]
-[Client: listens for 'notification' events → update UI + play audio]
+                    UI Module Split (5)
+                         |
+    +--------------------+--------------------+
+    |                    |                    |
+Server Sessions (1) --> Session UI (2) --> Manager AI (6)
+    |                    |
+    v                    v
+Persistence (3)     Richer Hooks (4)
+    |                    |
+    v                    v
+Event History UI     Hook Installer
 ```
 
-### Config Change Flow
+### Recommended Build Sequence
+
+**Wave 1: Foundation (sessions become server-side)**
+
+| Order | Component | Type | Depends On | Rationale |
+|-------|-----------|------|------------|-----------|
+| 1 | `sessions.js` module | NEW | nothing | Core data model must exist first |
+| 2 | Server routes for sessions | MODIFIED `server.js` | sessions.js | Expose session state via API |
+| 3 | Static file serving | MODIFIED `server.js` | nothing | Required before UI split |
+| 4 | UI module split | MODIFIED `public/` | static serving | Must split before adding new UI |
+
+**Wave 2: Rich sessions + persistence**
+
+| Order | Component | Type | Depends On | Rationale |
+|-------|-----------|------|------------|-----------|
+| 5 | Session cards with actions | MODIFIED `public/modules/sessions.js` | UI split | Dismiss, mark seen, deep link |
+| 6 | Richer hook payload | MODIFIED `hooks/notify-trigger.cjs` | server sessions | More data flowing in |
+| 7 | `persistence.js` module | NEW | sessions.js | Survive restarts, history |
+| 8 | Event history in UI | MODIFIED `public/modules/feed.js` | persistence | Show historical events |
+
+**Wave 3: Manager AI + deployment**
+
+| Order | Component | Type | Depends On | Rationale |
+|-------|-----------|------|------------|-----------|
+| 9 | `manager.js` module | NEW | sessions.js | AI needs session data |
+| 10 | Manager UI panel | NEW `public/modules/manager-panel.js` | UI split, manager.js | Display insights |
+| 11 | Hook installer endpoint | NEW route in server.js | richer hooks | Simplify cross-machine setup |
+
+**Wave 4: Polish + advanced features**
+
+| Order | Component | Type | Depends On | Rationale |
+|-------|-----------|------|------------|-----------|
+| 12 | Screen-space-aware layout | MODIFIED CSS in `index.html` | UI split | Responsive to 16" screen |
+| 13 | Session response helpers | NEW in sessions UI | sessions.js | Copy path, terminal hints |
+| 14 | Notification regression tests | MODIFIED various | all | Ensure v1.0 features intact |
+
+### Why This Order
+
+1. **Sessions first** because everything depends on server-side session state
+2. **Static file serving before UI split** because modules need to be served
+3. **UI split early** because all subsequent UI work benefits from modularity
+4. **Persistence after sessions** because you need the data model before you can persist it
+5. **Richer hooks after server sessions** because the server needs to know what to do with the extra data
+6. **Manager AI late** because it's the riskiest feature (API costs, latency, reliability) and benefits from a stable foundation
+7. **Hook installer last in Wave 3** because it's a convenience feature, not a blocker
+
+---
+
+## Component Change Summary
+
+### New Files
+
+| File | Purpose | Phase |
+|------|---------|-------|
+| `sessions.js` | Server-side session store | Wave 1 |
+| `persistence.js` | JSON file persistence for sessions/events | Wave 2 |
+| `manager.js` | Manager AI integration (claude -p calls) | Wave 3 |
+| `public/modules/app.js` | Client entry point | Wave 1 |
+| `public/modules/state.js` | Shared client state | Wave 1 |
+| `public/modules/sse.js` | SSE connection management | Wave 1 |
+| `public/modules/sessions.js` | Session grid rendering | Wave 1 |
+| `public/modules/feed.js` | Activity feed | Wave 1 |
+| `public/modules/toasts.js` | Toast notifications | Wave 1 |
+| `public/modules/config-panel.js` | Config sidebar | Wave 1 |
+| `public/modules/manager-panel.js` | Manager AI display | Wave 3 |
+| `public/modules/audio.js` | Voice playback | Wave 1 |
+| `public/modules/utils.js` | Shared utilities | Wave 1 |
+| `hooks/claude-settings-snippet.json` | Hook config template | Wave 3 |
+
+### Modified Files
+
+| File | Changes | Phase |
+|------|---------|-------|
+| `server.js` | Import sessions.js, add /sessions routes, static file serving, manager triggers | Wave 1-3 |
+| `sse.js` | New event types (session:update, manager:insight) | Wave 1-2 |
+| `public/index.html` | Extract JS to modules, keep HTML+CSS shell, add manager panel HTML | Wave 1, 3 |
+| `hooks/notify-trigger.cjs` | Richer payload (hookEvent, lastMessage, toolName) | Wave 2 |
+
+### Unchanged Files
+
+| File | Reason |
+|------|--------|
+| `config.js` | Voice config is independent of session management |
+| `tts.js` | TTS is independent of session management |
+| `push.js` | Push notifications continue to work as-is |
+| `public/sw.js` | Service worker unchanged |
+
+---
+
+## Data Flow: Complete Picture
 
 ```
-[User picks voice in UI]
-        ↓
-[POST /select { voice, template, type }]
-        ↓
-[config.js: update in-memory config, write config.json to disk]
-[tts.js: clearCache(type) — force regeneration of WAVs for new voice]
-        ↓
-[200 OK → UI confirms selection]
+Machine (CodeBox/Lenovo/Mac)
+    |
+    | Claude Code hooks (SessionStart, PostToolUse, Stop, Notification)
+    v
+hooks/notify-trigger.cjs
+    |
+    | HTTP POST /trigger (rich JSON payload)
+    v
+server.js
+    |
+    |-- sessions.js: update session state
+    |-- persistence.js: append to event log
+    |-- sse.js: emit 'trigger' + 'session:update'
+    |-- tts.js: generate cached WAV (existing)
+    |-- push.js: send push notification (existing)
+    |-- manager.js: conditionally analyze (if attention or periodic)
+    |
+    v
+SSE event stream
+    |
+    |-- Browser: update session cards, feed, toasts, play audio
+    |-- Browser: display manager insights when received
+    |
+    | (user actions)
+    v
+HTTP POST /sessions/:id/dismiss, /manager/analyze, etc.
+    |
+    v
+server.js -> sessions.js -> sse.js (emit update)
 ```
 
-## Build Order Implications
+---
 
-The component dependency graph dictates this build order:
+## Anti-Patterns to Avoid
 
-1. **Event Bus + Session Store** — no dependencies; everything else reads/writes these.
-2. **SSE Broadcaster** — depends on event bus (listens for 'notification'); replaces polling entirely.
-3. **Refactored /trigger route** — upgrade local hook to use same project resolution as remote hook; emit to event bus instead of writing bare file.
-4. **Static file serving** — extract embedded HTML to `public/`; serve from disk. Prerequisite for building a real dashboard UI.
-5. **Dashboard UI** — uses SSE connection (step 2) and sessions endpoint (step 1). Session grid + activity feed.
-6. **Service Worker + Web Push** — depends on static file serving (sw.js must be served); requires HTTPS config.
-7. **Voice config + template editor UI** — standalone; can be built any time after static extraction.
+### Anti-Pattern 1: WebSocket Migration
+**What:** Replacing SSE with WebSocket for "true bidirectional" communication
+**Why bad:** SSE works, has auto-reconnect, is simpler. WebSocket adds connection management complexity for no real benefit in this use case. The POST+SSE pattern handles all bidirectional needs.
+**Instead:** Keep SSE for server->client, use POST for client->server.
 
-Steps 1-3 fix the core reliability issues. Steps 4-5 deliver the dashboard. Steps 6-7 add polish.
+### Anti-Pattern 2: Framework Migration
+**What:** Adopting React/Vue/Svelte for the command center UI
+**Why bad:** Introduces build step, massive dependency tree, learning curve for a single-user app. The vanilla JS approach is fast, simple, and working.
+**Instead:** Split into ES modules. Use Web Components only if you need shadow DOM isolation (you probably don't).
 
-## Anti-Patterns
+### Anti-Pattern 3: Persistent Manager AI Session
+**What:** Running a long-lived Claude Code session as the "Manager AI"
+**Why bad:** Expensive (continuous API usage), complex state management, unclear recovery on crash. A monitoring AI doesn't need persistent conversation context.
+**Instead:** Stateless `claude -p --bare` calls with session snapshot as input. Each call is independent.
 
-### Anti-Pattern 1: Keeping HTML Embedded in server.js
+### Anti-Pattern 4: SQLite for Small Data
+**What:** Adding better-sqlite3 or node:sqlite for session/event storage
+**Why bad:** Adds native compilation dependency (better-sqlite3) or requires experimental flag (node:sqlite). The data volume (kilobytes per day) doesn't justify a database.
+**Instead:** JSON files with JSONL for append-only logs. Revisit if querying becomes complex.
 
-**What people do:** Continue extending the template literal `const html = \`...\`` inside server.js as features grow.
+### Anti-Pattern 5: Overloading the Hook Script
+**What:** Making the hook script do complex processing (AI calls, state management)
+**Why bad:** Hooks must be fast (< 4 second timeout). Complex hooks slow down Claude Code's response cycle. Hooks should be thin pipes.
+**Instead:** Hook sends minimal data to server. Server does all processing.
 
-**Why it's wrong:** The UI is already 190 lines of inline HTML/CSS/JS inside a JS string. Adding a dashboard, service worker registration, and config panels will push it past 600-800 lines. No syntax highlighting, no ability to extract into components, breakpoints are unusable.
+---
 
-**Do this instead:** Serve `public/index.html` from disk. Use `fs.readFileSync` once at startup or stream with `fs.createReadStream`. This is the highest-priority structural change.
+## Scalability Considerations
 
-### Anti-Pattern 2: Continuing to Poll /check
+| Concern | 5 sessions | 20 sessions | 50+ sessions |
+|---------|------------|-------------|--------------|
+| In-memory sessions | Trivial | Trivial | Trivial (~50KB) |
+| SSE broadcast | Fast | Fast | May need batching |
+| Event log (JSONL) | Tiny | ~100KB/day | ~500KB/day, fine |
+| TTS cache | ~5MB | ~20MB | ~50MB, add cache limit |
+| Manager AI calls | Rare | Moderate | Rate limit strictly |
+| Hook processing | Instant | Instant | Debounce more aggressively |
 
-**What people do:** Keep the 1-second `setTimeout(poll, 1000)` loop as a fallback alongside adding SSE.
+The system comfortably handles the target use case (5-20 concurrent sessions) without any architectural changes beyond what's proposed.
 
-**Why it's wrong:** Two competing notification channels create race conditions. If polling fires 50ms before the SSE event, the WAV is already playing when the SSE handler fires and tries to play it again. Also, polling requires the mtime-comparison state (`lastTrigger`) to stay in sync with SSE state — they will drift.
-
-**Do this instead:** Remove /check and the polling loop entirely. SSE is strictly better: lower latency, no duplicate events, no missed events between polls, no wasted requests on quiet periods.
-
-### Anti-Pattern 3: Storing Push Subscriptions Only in Memory
-
-**What people do:** Keep push subscriptions in a `Set` or `Array` on the server process.
-
-**Why it's wrong:** PM2 restarts the server when it crashes or when `pm2 restart claude-notify` is run (which happens after every code change). All subscriptions are lost. The next notification silently reaches nobody.
-
-**Do this instead:** Persist subscriptions to `data/subscriptions.json`. On startup, load existing subscriptions. Handle 410 Gone responses from push services by removing the stale entry from the file.
-
-### Anti-Pattern 4: Local Hook That Doesn't Resolve Project Name
-
-**What people do:** Keep `notify-done.sh` writing `{"type":"done","project":""}` — the existing script.
-
-**Why it's wrong:** Every CodeBox session notification says "Done" with no project name. When running 5+ concurrent sessions, the user cannot tell which project finished.
-
-**Do this instead:** Replace `notify-done.sh` with a call to `notify-trigger.js` targeting localhost: `VOICE_NOTIFY_URL=http://localhost:3099 node /path/to/notify-trigger.js done`. This reuses the existing project resolution logic without duplicating it.
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| edge-tts (Python CLI) | `child_process.exec()` — shell out, capture exit code | Must be ≥ v7.2.8. Pre-warm cache on /trigger so WAV is ready before browser requests it. |
-| Browser Push Services (Google, Mozilla) | `web-push.sendNotification()` via VAPID | Requires HTTPS. Handle 410 Gone by removing subscription. Single-user so subscription list stays tiny. |
-| Caddy reverse proxy | Standard HTTP + `X-Accel-Buffering: no` header on SSE routes | The buffering header is critical — Caddy buffers responses by default, which breaks SSE streaming. |
-| Tailscale | Network layer only — no code changes needed | Server binds `0.0.0.0:3099`. Tailscale IP (100.123.116.23) is just a routed address. |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Hook scripts → Server | HTTP GET /trigger (remote) or file write (local) | Local hook should be upgraded to HTTP too (simpler, same code path) |
-| /trigger → Session Store | Direct function call (`sessions.update()`) | Synchronous; session store is a module, not a service |
-| /trigger → Event Bus | `bus.emit('notification', event)` | Synchronous fan-out in Node.js EventEmitter |
-| Event Bus → SSE Broadcaster | EventEmitter listener | SSE broadcaster registers on startup; auto-cleans dead connections on `res.close` |
-| Event Bus → Web Push Sender | EventEmitter listener | Async; push failures should not block or throw |
-| Browser → Server (config changes) | Plain HTTP POST | No real-time requirement; request/response is appropriate |
-| Browser → Server (session snapshot) | GET /sessions → JSON array | Called once on page load; SSE keeps it current after that |
-
-## Scaling Considerations
-
-This is a single-user system. Scaling is not a concern. The relevant resilience considerations are:
-
-| Concern | Reality | Approach |
-|---------|---------|---------|
-| Server restarts (PM2 restart after deploys) | Common | Persist push subscriptions to disk; sessions are intentionally ephemeral |
-| SSE connection drops (network hiccup) | Occasional | `retry: 3000` in SSE stream tells client to reconnect; `EventSource` auto-reconnects natively |
-| edge-tts API failures | Occasional (Microsoft API) | Log error, return 404 for WAV, skip notification rather than blocking |
-| Multiple browser tabs open | Rare but possible | SSE broadcaster handles N clients in a Set; no special casing needed |
+---
 
 ## Sources
 
-- [WebSockets vs Server-Sent Events (SSE) — Ably](https://ably.com/blog/websockets-vs-sse)
-- [SSE vs WebSockets vs Polling — RxDB comprehensive comparison](https://rxdb.info/articles/websockets-sse-polling-webrtc-webtransport.html)
-- [Server-Sent Events in Node.js — DigitalOcean tutorial](https://www.digitalocean.com/community/tutorials/nodejs-server-sent-events-build-realtime-app)
-- [Using Server-Sent Events — MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events)
-- [Web Push API — MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/API/Push_API)
-- [web-push npm package](https://www.npmjs.com/package/web-push)
-- [Web Push Protocol — web.dev](https://web.dev/articles/push-notifications-web-push-protocol)
-- [Building Real-Time Dashboards with Node.js — OpenReplay](https://blog.openreplay.com/real-time-dashboards-nodejs/)
-- [Event-Driven Architecture in Node.js 2025 — OneUptime](https://oneuptime.com/blog/post/2026-01-30-nodejs-event-driven-architecture/view)
-
----
-*Architecture research for: voice notification system + live coding dashboard*
-*Researched: 2026-03-26*
+- [Claude Code Headless/Programmatic Mode](https://code.claude.com/docs/en/headless) -- Official docs on `claude -p`, session IDs, structured output
+- [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks) -- All 21+ lifecycle events, input schemas, common fields
+- [MCP SSE Architecture](https://blog.fka.dev/blog/2025-06-06-why-mcp-deprecated-sse-and-go-with-streamable-http/) -- SSE + POST bidirectional pattern (the pattern we're using)
+- [Node.js SQLite API](https://nodejs.org/api/sqlite.html) -- Still experimental as of Node v25
+- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) -- Fastest SQLite for Node.js (considered, not recommended for this project)
+- [Building Modular Web Apps with Vanilla JavaScript](https://devdecodes.medium.com/building-modular-web-apps-with-vanilla-javascript-no-frameworks-needed-631710bae703) -- ES module patterns
+- [Vanilla App Architecture Using Web Components](https://frontendmasters.com/blog/architecture-through-component-colocation/) -- Component colocation patterns
