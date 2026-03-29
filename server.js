@@ -5,6 +5,7 @@ import { load as loadConfig, get as getConfig, update as updateConfig, save as s
 import { generateSamples, generateCached, getCachePath, clearCache, getSamples, safeName } from './tts.js';
 import { emit, addClient, getClientCount } from './sse.js';
 import { loadPush, getPublicKey, addSubscription, pushToAll } from './push.js';
+import { upsertSession, getAllSessions, loadSessions } from './sessions.js';
 
 const PORT = process.env.PORT || 3099;
 
@@ -29,9 +30,10 @@ setInterval(() => {
   }
 }, 60000);
 
-// Initialize config and push
+// Initialize config, push, and sessions
 loadConfig();
 loadPush();
+loadSessions();
 
 // Load HTML from disk
 const htmlPath = join(import.meta.dirname, 'public', 'index.html');
@@ -135,6 +137,16 @@ const server = http.createServer((req, res) => {
           return;
         }
 
+        // Create/update server-side session
+        upsertSession({
+          sessionId: sessionId || 'unknown',
+          project,
+          machine: machine || 'unknown',
+          cwd: cwd || '',
+          type,
+          questionText: null
+        });
+
         // Emit to SSE event bus
         emit('trigger', { type, project, machine, sessionId, timestamp });
 
@@ -182,6 +194,10 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ ok: false, error: e.message }));
       }
     });
+
+  } else if (pathname === '/sessions') {
+    res.writeHead(200, {'Content-Type': 'application/json'});
+    res.end(JSON.stringify(getAllSessions()));
 
   } else {
     res.writeHead(200, {'Content-Type': 'text/html'});
