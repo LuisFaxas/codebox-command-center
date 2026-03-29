@@ -4,9 +4,14 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "npx playwright test",
+    "test:notifications": "npx playwright test tests/notifications.spec.mjs"
   },
   "dependencies": {
     "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "playwright": "^1.58.2"
   }
 }
