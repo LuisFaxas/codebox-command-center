@@ -5,11 +5,11 @@ export default defineConfig({
   timeout: 30000,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:3099',
+    baseURL: `http://localhost:${process.env.TEST_PORT || 3099}`,
   },
   webServer: {
-    command: 'node server.js',
-    port: 3099,
+    command: `PORT=${process.env.TEST_PORT || 3099} node server.js`,
+    port: Number(process.env.TEST_PORT || 3099),
     reuseExistingServer: true,
     timeout: 10000,
   },
