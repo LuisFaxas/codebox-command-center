@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Center Console
 status: Ready to execute
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-29T07:53:00.639Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-29T08:01:21Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -53,6 +53,7 @@ Plan: 2 of 2
 
 *Updated after each plan completion*
 | Phase 04 P01 | 6min | 2 tasks | 5 files |
+| Phase 04 P02 | 6min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - [v2.0 Research]: NOTIF-* requirements are regression gates verified every phase
 - [Phase 04]: Combined persist and TTL sweep into single 30s interval timer
 - [Phase 04]: Used domcontentloaded for Playwright on SSE pages (networkidle never resolves)
+- [Phase 04]: TEST_PORT env var (3098) isolates test server from production (3099)
+- [Phase 04]: Client trigger handler is notification-only; session grid driven by session:update SSE events
 
 ### Pending Todos
 
@@ -82,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T07:53:00.635Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-29T08:01:21Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
