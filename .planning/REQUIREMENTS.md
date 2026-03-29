@@ -90,12 +90,12 @@ Requirements for v2.0 milestone. Transforms notification tool into unified sessi
 
 ### Sessions
 
-- [ ] **SESS-01**: Server tracks all active sessions with project, machine, status, cwd, and last activity timestamp
-- [ ] **SESS-02**: Session state persists across server restarts via JSON file storage
+- [x] **SESS-01**: Server tracks all active sessions with project, machine, status, cwd, and last activity timestamp
+- [x] **SESS-02**: Session state persists across server restarts via JSON file storage
 - [ ] **SESS-03**: Session cards display project name, machine, status badge, duration, current tool, and last message
 - [ ] **SESS-04**: User can click a session card to expand full event history timeline
-- [ ] **SESS-05**: Sessions transition through working/done/attention/stale states based on hook events
-- [ ] **SESS-06**: Stale sessions auto-dim after 5 minutes and auto-remove after 30 minutes
+- [x] **SESS-05**: Sessions transition through working/done/attention/stale states based on hook events
+- [x] **SESS-06**: Stale sessions auto-dim after 5 minutes and auto-remove after 30 minutes
 
 ### Hooks (v2)
 
@@ -127,9 +127,9 @@ Requirements for v2.0 milestone. Transforms notification tool into unified sessi
 
 ### Notifications (preserved from v1)
 
-- [ ] **NOTIF-01**: Voice notifications fire on done and question events (no regression from v1.0)
-- [ ] **NOTIF-02**: Browser push notifications work when tab is backgrounded
-- [ ] **NOTIF-03**: Visual toast notifications appear with auto-dismiss (8s done, 15s question)
+- [x] **NOTIF-01**: Voice notifications fire on done and question events (no regression from v1.0)
+- [x] **NOTIF-02**: Browser push notifications work when tab is backgrounded
+- [x] **NOTIF-03**: Visual toast notifications appear with auto-dismiss (8s done, 15s question)
 
 ## Future Requirements
 
@@ -209,13 +209,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SESS-01 | Phase 4 | Pending |
-| SESS-02 | Phase 4 | Pending |
-| SESS-05 | Phase 4 | Pending |
-| SESS-06 | Phase 4 | Pending |
-| NOTIF-01 | Phase 4 | Pending |
-| NOTIF-02 | Phase 4 | Pending |
-| NOTIF-03 | Phase 4 | Pending |
+| SESS-01 | Phase 4 | Complete |
+| SESS-02 | Phase 4 | Complete |
+| SESS-05 | Phase 4 | Complete |
+| SESS-06 | Phase 4 | Complete |
+| NOTIF-01 | Phase 4 | Complete |
+| NOTIF-02 | Phase 4 | Complete |
+| NOTIF-03 | Phase 4 | Complete |
 | SESS-03 | Phase 5 | Pending |
 | SESS-04 | Phase 5 | Pending |
 | UI-05 | Phase 5 | Pending |

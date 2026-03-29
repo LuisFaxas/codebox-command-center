@@ -83,7 +83,7 @@ Plans:
   4. Voice notifications, browser push, and visual toasts continue to fire exactly as they did in v1.0 — no regression
 **Plans:** 2 plans
 Plans:
-- [ ] 04-01-PLAN.md — Create sessions.js module with lifecycle, persistence, TTL + Playwright regression suite
+- [x] 04-01-PLAN.md — Create sessions.js module with lifecycle, persistence, TTL + Playwright regression suite
 - [ ] 04-02-PLAN.md — Integrate sessions.js into server.js, update browser client to consume server-side sessions
 
 ### Phase 5: Frontend Rebuild + Session Cards
