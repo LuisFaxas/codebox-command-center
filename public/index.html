@@ -969,6 +969,21 @@
   const MAX_TOASTS = 5;
   let notifyCount = 0;
   let localConfig = {};
+  let lastProcessedEventId = 0;
+
+  async function loadInitialSessions() {
+    try {
+      const res = await fetch('/sessions');
+      const serverSessions = await res.json();
+      for (const [id, session] of Object.entries(serverSessions)) {
+        sessions.set(id, session);
+      }
+      renderSessions();
+      updateStats();
+    } catch(e) {
+      console.log('[sessions] Failed to load initial sessions:', e.message);
+    }
+  }
 
   // === DOM REFS ===
   const sessionGrid = document.getElementById('sessionGrid');
@@ -992,20 +1007,14 @@
     eventSource = new EventSource('/events');
 
     eventSource.addEventListener('trigger', (e) => {
+      const eventId = Number(e.lastEventId) || 0;
+      if (eventId && eventId <= lastProcessedEventId) return;
+      if (eventId) lastProcessedEventId = eventId;
+
       const data = JSON.parse(e.data);
       const { type, project, machine, sessionId, timestamp } = data;
 
-      // Update session
-      const existing = sessions.get(sessionId) || {};
-      sessions.set(sessionId, {
-        project: project || existing.project || 'Unknown',
-        machine: machine || existing.machine || 'unknown',
-        status: type === 'question' ? 'attention' : 'done',
-        lastActivity: Date.now(),
-        startedAt: existing.startedAt || Date.now()
-      });
-
-      // Add to activity feed
+      // Activity feed (notification history, not session state)
       activityFeed.unshift({
         type: type || 'done',
         project: project || 'Unknown',
@@ -1018,7 +1027,6 @@
 
       showToast(type || 'done', project || 'Unknown');
       playVoice(type || 'done', project || '');
-      renderSessions();
       renderFeed();
       updateStats();
     });
@@ -1028,12 +1036,28 @@
       const { sessionId, project, machine } = data;
       const existing = sessions.get(sessionId) || {};
       sessions.set(sessionId, {
+        ...existing,
         project: project || existing.project || 'Unknown',
         machine: machine || existing.machine || 'unknown',
         status: 'working',
         lastActivity: Date.now(),
-        startedAt: existing.startedAt || Date.now()
+        firstSeen: existing.firstSeen || Date.now()
       });
+      renderSessions();
+      updateStats();
+    });
+
+    eventSource.addEventListener('session:update', (e) => {
+      const data = JSON.parse(e.data);
+      const existing = sessions.get(data.sessionId) || {};
+      sessions.set(data.sessionId, { ...existing, ...data });
+      renderSessions();
+      updateStats();
+    });
+
+    eventSource.addEventListener('session:remove', (e) => {
+      const { sessionId } = JSON.parse(e.data);
+      sessions.delete(sessionId);
       renderSessions();
       updateStats();
     });
@@ -1053,6 +1077,7 @@
     eventSource.onopen = () => {
       connectionDot.classList.add('connected');
       connectionText.textContent = 'Connected';
+      loadInitialSessions();
     };
 
     eventSource.onerror = () => {
@@ -1108,7 +1133,7 @@
         '<div class="session-meta">' +
           '<div class="session-meta-row">' +
             '<span class="session-machine">' + escapeHtml(session.machine) + '</span>' +
-            '<span class="session-duration">' + formatDuration(session.startedAt) + '</span>' +
+            '<span class="session-duration">' + formatDuration(session.firstSeen) + '</span>' +
           '</div>' +
           '<div class="session-meta-row">' +
             '<span>Last activity: ' + formatRelativeTime(session.lastActivity) + '</span>' +
@@ -1118,26 +1143,6 @@
       sessionGrid.appendChild(card);
     }
   }
-
-  // === SESSION TTL ===
-  setInterval(() => {
-    const now = Date.now();
-    let changed = false;
-    for (const [id, session] of sessions) {
-      const elapsed = now - session.lastActivity;
-      if (elapsed > 30 * 60 * 1000) {
-        sessions.delete(id);
-        changed = true;
-      } else if (elapsed > 5 * 60 * 1000 && session.status !== 'stale') {
-        session.status = 'stale';
-        changed = true;
-      }
-    }
-    if (changed) {
-      renderSessions();
-      updateStats();
-    }
-  }, 10000);
 
   // === ACTIVITY FEED ===
   function renderFeed() {
