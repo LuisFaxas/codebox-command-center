@@ -7,6 +7,7 @@ import { initConversation } from '#conversation';
 import { initSidebar } from '#sidebar';
 import { initToasts } from '#toasts';
 import { initAudio } from '#audio';
+import { initParticles } from './particles.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load initial sessions
@@ -34,6 +35,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Start SSE connection
   connectSSE();
+
+  // Particle background behind the main content area
+  const mainArea = document.querySelector('.command-center');
+  if (mainArea) {
+    initParticles(mainArea, {
+      count: 80,
+      spread: 12,
+      speed: 0.05,
+      baseSize: 60,
+      sizeRandomness: 1,
+      cameraDistance: 25
+    });
+  }
 
   // Sidebar toggle — collapse/expand, nav buttons handle expand-to-section
   const sidebarToggle = document.querySelector('.sidebar-toggle');
