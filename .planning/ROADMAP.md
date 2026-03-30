@@ -98,8 +98,8 @@ Plans:
   5. The frontend is split into ES modules loaded via import maps — no build step, no framework
 **Plans:** 4 plans
 Plans:
-- [ ] 05-01-PLAN.md — Install SDK, create sdk-bridge.js abstraction, add proxy endpoints and static file serving
-- [ ] 05-02-PLAN.md — CSS design system (FAXAS brand tokens), HTML shell with import map, core modules (state, SSE, utils)
+- [x] 05-01-PLAN.md — Install SDK, create sdk-bridge.js abstraction, add proxy endpoints and static file serving
+- [x] 05-02-PLAN.md — CSS design system (FAXAS brand tokens), HTML shell with import map, core modules (state, SSE, utils)
 - [ ] 05-03-PLAN.md — Session card renderer with status badges, conversation panel with SDK message loading
 - [ ] 05-04-PLAN.md — Sidebar config panel, toast system, audio playback, final wiring and human verification
 

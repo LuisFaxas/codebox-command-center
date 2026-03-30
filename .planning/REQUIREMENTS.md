@@ -106,9 +106,9 @@ Requirements for v2.0 milestone. Transforms notification tool into unified sessi
 
 ### UI/Layout (v2)
 
-- [ ] **UI-05**: Dashboard uses full screen with CSS Grid layout optimized for 16" displays
+- [x] **UI-05**: Dashboard uses full screen with CSS Grid layout optimized for 16" displays
 - [ ] **UI-06**: Voice and template configuration lives in a persistent sidebar panel (not hidden behind icon)
-- [ ] **UI-07**: Frontend split into ES modules loaded via import maps (no build step, no framework)
+- [x] **UI-07**: Frontend split into ES modules loaded via import maps (no build step, no framework)
 - [ ] **UI-08**: Session grid uses progressive disclosure — overview cards expand to show detail
 - [ ] **UI-09**: Dashboard answers two questions at a glance: "Is anything waiting for me?" and "What is each session doing?"
 
@@ -218,9 +218,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTIF-03 | Phase 4 | Complete |
 | SESS-03 | Phase 5 | Pending |
 | SESS-04 | Phase 5 | Pending |
-| UI-05 | Phase 5 | Pending |
+| UI-05 | Phase 5 | Complete |
 | UI-06 | Phase 5 | Pending |
-| UI-07 | Phase 5 | Pending |
+| UI-07 | Phase 5 | Complete |
 | UI-08 | Phase 5 | Pending |
 | UI-09 | Phase 5 | Pending |
 | HOOK-05 | Phase 6 | Pending |
