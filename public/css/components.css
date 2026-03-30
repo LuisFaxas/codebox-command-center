@@ -27,6 +27,17 @@
   border-radius: 12px;
 }
 
+/* === EMBLA CAROUSEL === */
+.embla { overflow: hidden; width: 100%; }
+.embla__container { display: flex; gap: var(--space-lg); }
+.embla__slide { flex: 0 0 calc(25% - 12px); min-width: 280px; }
+.embla__dots { display: flex; justify-content: center; gap: var(--space-sm); margin-top: var(--space-sm); }
+.embla__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-standard); border: none; cursor: pointer; padding: 0; transition: background 0.2s ease; }
+.embla__dot.active { background: var(--accent-primary); }
+
+@media (max-width: 1200px) { .embla__slide { flex: 0 0 calc(50% - 8px); } }
+@media (max-width: 768px) { .embla__slide { flex: 0 0 100%; } }
+
 /* === GLASS CARD STATES === */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -283,22 +294,24 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   height: 100%;
   color: var(--text-muted);
   text-align: center;
-  padding: var(--space-2xl);
+  padding-top: var(--space-3xl);
+  padding-left: var(--space-2xl);
+  padding-right: var(--space-2xl);
+  padding-bottom: var(--space-2xl);
 }
 
 .empty-state h3 {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin: 0 0 var(--space-sm);
 }
 
 .empty-state p {
-  font-size: 14px;
+  font-size: 13px;
   max-width: 360px;
   margin: 0;
   line-height: 1.5;

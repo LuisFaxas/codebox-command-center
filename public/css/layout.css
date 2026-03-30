@@ -66,12 +66,8 @@ body {
 .session-overview {
   grid-column: 1;
   grid-row: 2;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-lg);
+  height: 160px;
   padding: var(--space-lg);
-  max-height: 40vh;
-  overflow-y: auto;
 }
 
 /* Conversation panel — column 1, row 3 */

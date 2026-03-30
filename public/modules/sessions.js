@@ -1,11 +1,16 @@
-/* Session card rendering and grid management */
+/* Session card rendering with Embla Carousel */
 
+import EmblaCarousel from 'embla-carousel';
 import { subscribe, setSelectedSession, state, getSession } from '#state';
 import { escapeHtml, formatRelativeTime, statusLabel } from '#utils';
 
 const DEVICE_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="9" rx="1.5"/><path d="M5 14h6M8 11v3"/></svg>';
 
 let grid = null;
+let emblaApi = null;
+let emblaRoot = null;
+let emblaContainer = null;
+let dotsContainer = null;
 let durationInterval = null;
 
 function getPreviewText(session) {
@@ -20,19 +25,73 @@ function getPreviewText(session) {
   }
 }
 
-function renderCard(session) {
+function setupEmblaStructure() {
   if (!grid) return;
 
-  let card = grid.querySelector(`[data-session-id="${session.sessionId}"]`);
-  if (!card) {
-    card = document.createElement('div');
-    card.dataset.sessionId = session.sessionId;
+  // Create embla wrapper structure inside #session-grid
+  emblaRoot = document.createElement('div');
+  emblaRoot.className = 'embla';
+
+  emblaContainer = document.createElement('div');
+  emblaContainer.className = 'embla__container';
+
+  emblaRoot.appendChild(emblaContainer);
+  grid.appendChild(emblaRoot);
+
+  dotsContainer = document.createElement('div');
+  dotsContainer.className = 'embla__dots';
+  grid.appendChild(dotsContainer);
+}
+
+function initEmbla() {
+  if (!emblaRoot) return;
+
+  emblaApi = EmblaCarousel(emblaRoot, {
+    align: 'start',
+    containScroll: 'trimSnaps',
+    dragFree: false
+  });
+
+  emblaApi.on('init', updateDots);
+  emblaApi.on('reInit', updateDots);
+  emblaApi.on('select', updateDots);
+}
+
+function updateDots() {
+  if (!emblaApi || !dotsContainer) return;
+
+  const scrollSnaps = emblaApi.scrollSnapList();
+  const selectedIndex = emblaApi.selectedScrollSnap();
+
+  dotsContainer.innerHTML = scrollSnaps.map((_, i) => {
+    const activeClass = i === selectedIndex ? ' active' : '';
+    return `<button class="embla__dot${activeClass}" aria-label="Go to slide ${i + 1}"></button>`;
+  }).join('');
+
+  dotsContainer.querySelectorAll('.embla__dot').forEach((dot, i) => {
+    dot.addEventListener('click', () => emblaApi.scrollTo(i));
+  });
+}
+
+function renderCard(session) {
+  if (!emblaContainer) return;
+
+  let slide = emblaContainer.querySelector(`[data-session-id="${session.sessionId}"]`);
+  if (!slide) {
+    slide = document.createElement('div');
+    slide.className = 'embla__slide';
+    slide.dataset.sessionId = session.sessionId;
+
+    const card = document.createElement('div');
+    card.className = 'session-card';
     card.addEventListener('click', () => {
       setSelectedSession(session.sessionId);
     });
-    grid.appendChild(card);
+    slide.appendChild(card);
+    emblaContainer.appendChild(slide);
   }
 
+  const card = slide.querySelector('.session-card');
   const isSelected = state.selectedSessionId === session.sessionId;
   const isAttention = session.status === 'attention';
 
@@ -73,19 +132,27 @@ function renderCard(session) {
       setSelectedSession(session.sessionId);
     });
   }
+
+  // Reinitialize embla to pick up DOM changes
+  if (emblaApi) emblaApi.reInit();
 }
 
 function removeCard(sessionId) {
-  if (!grid) return;
-  const card = grid.querySelector(`[data-session-id="${sessionId}"]`);
-  if (card) card.remove();
+  if (!emblaContainer) return;
+  const slide = emblaContainer.querySelector(`[data-session-id="${sessionId}"]`);
+  if (slide) {
+    slide.remove();
+    if (emblaApi) emblaApi.reInit();
+  }
 }
 
 function updateSelectedState({ sessionId }) {
-  if (!grid) return;
-  const cards = grid.querySelectorAll('.session-card');
-  cards.forEach(card => {
-    const id = card.dataset.sessionId;
+  if (!emblaContainer) return;
+  const slides = emblaContainer.querySelectorAll('.embla__slide');
+  slides.forEach(slide => {
+    const id = slide.dataset.sessionId;
+    const card = slide.querySelector('.session-card');
+    if (!card) return;
     const session = getSession(id);
     const isSelected = id === sessionId;
     const isAttention = session && session.status === 'attention';
@@ -93,16 +160,15 @@ function updateSelectedState({ sessionId }) {
     card.classList.remove('glass-subtle', 'glass-card', 'selected');
     card.classList.add(isSelected ? 'glass-card' : 'glass-subtle');
     if (isSelected) card.classList.add('selected');
-    // Preserve attention class
     card.classList.toggle('attention', !!isAttention);
   });
 }
 
 function updateDurations() {
-  if (!grid) return;
-  const els = grid.querySelectorAll('.session-duration[data-activity]');
+  if (!emblaContainer) return;
+  const els = emblaContainer.querySelectorAll('.session-duration[data-activity]');
   els.forEach(el => {
-    const session = getSession(el.closest('.session-card')?.dataset.sessionId);
+    const session = getSession(el.closest('.embla__slide')?.dataset.sessionId);
     if (session && session.status !== 'stale') {
       el.textContent = formatRelativeTime(session.lastActivity);
     }
@@ -112,6 +178,9 @@ function updateDurations() {
 function initSessions() {
   grid = document.getElementById('session-grid');
   if (!grid) return;
+
+  setupEmblaStructure();
+  initEmbla();
 
   subscribe('session:update', (sessionData) => {
     renderCard(sessionData);
