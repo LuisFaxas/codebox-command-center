@@ -65,8 +65,8 @@ Plans:
 
 **Milestone Goal:** Transform from notification tool into unified session command center — one screen for all Claude Code sessions across machines.
 
-- [ ] **Phase 4: Session Foundation** - Server-side session state with persistence, lifecycle management, and notification preservation
-- [ ] **Phase 5: Frontend Rebuild + Session Cards** - ES module split, screen-filling layout, rich session cards with progressive disclosure
+- [x] **Phase 4: Session Foundation** - Server-side session state with persistence, lifecycle management, and notification preservation (completed 2026-03-30)
+- [x] **Phase 5: Frontend Rebuild + Session Cards** - ES module split, screen-filling layout, rich session cards with progressive disclosure (completed 2026-03-30)
 - [ ] **Phase 6: Rich Hooks + Interaction** - PostToolUse tracking, session registration, question display, and user actions
 - [ ] **Phase 7: Manager AI** - Passive AI observer that summarizes sessions and flags attention-needed states
 
@@ -84,7 +84,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 04-01-PLAN.md — Create sessions.js module with lifecycle, persistence, TTL + Playwright regression suite
-- [ ] 04-02-PLAN.md — Integrate sessions.js into server.js, update browser client to consume server-side sessions
+- [x] 04-02-PLAN.md — Integrate sessions.js into server.js, update browser client to consume server-side sessions
 
 ### Phase 5: Frontend Rebuild + Session Cards
 **Goal**: Users see a screen-filling command center with rich session cards that answer "Is anything waiting for me?" and "What is each session doing?" at a glance
@@ -100,8 +100,8 @@ Plans:
 Plans:
 - [x] 05-01-PLAN.md — Install SDK, create sdk-bridge.js abstraction, add proxy endpoints and static file serving
 - [x] 05-02-PLAN.md — CSS design system (FAXAS brand tokens), HTML shell with import map, core modules (state, SSE, utils)
-- [ ] 05-03-PLAN.md — Session card renderer with status badges, conversation panel with SDK message loading
-- [ ] 05-04-PLAN.md — Sidebar config panel, toast system, audio playback, final wiring and human verification
+- [x] 05-03-PLAN.md — Session card renderer with status badges, conversation panel with SDK message loading
+- [x] 05-04-PLAN.md — Sidebar config panel, toast system, audio playback, final wiring and human verification
 
 ### Phase 6: Rich Hooks + Interaction
 **Goal**: Sessions show what Claude is actively doing (which tool, which file) and users can act on sessions directly from the dashboard
@@ -136,7 +136,7 @@ Phases execute in numeric order: 4 → 5 → 6 → 7
 | 1. Hook Reliability + Project Identity | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 2. Real-Time Connection + Server Restructure | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 3. Notifications Dashboard | v1.0 | 3/4 | Complete | 2026-03-28 |
-| 4. Session Foundation | v2.0 | 0/2 | Not started | - |
-| 5. Frontend Rebuild + Session Cards | v2.0 | 0/4 | Not started | - |
+| 4. Session Foundation | v2.0 | 2/2 | Complete | 2026-03-30 |
+| 5. Frontend Rebuild + Session Cards | v2.0 | 4/4 | Complete | 2026-03-30 |
 | 6. Rich Hooks + Interaction | v2.0 | 0/? | Not started | - |
 | 7. Manager AI | v2.0 | 0/? | Not started | - |
