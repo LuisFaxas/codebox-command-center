@@ -96,9 +96,11 @@ function renderSection(section) {
 }
 
 function renderSessionsSection() {
-  const sessions = state.sessions ? Object.values(state.sessions) : [];
+  const sessions = state.sessions instanceof Map ? Array.from(state.sessions.values()) : [];
   const totalCount = sessions.length;
   const attentionCount = sessions.filter(s => s.status === 'attention').length;
+  const doneCount = sessions.filter(s => s.status === 'done').length;
+  const workingCount = sessions.filter(s => s.status === 'working').length;
 
   contentEl.innerHTML = `
     <div class="sidebar-stats">
@@ -106,9 +108,17 @@ function renderSessionsSection() {
         <div class="sidebar-stat-value">${totalCount}</div>
         <div class="sidebar-stat-label">Active Sessions</div>
       </div>
-      <div class="sidebar-stat">
+      <div class="sidebar-stat ${attentionCount > 0 ? 'stat-attention' : ''}">
         <div class="sidebar-stat-value">${attentionCount}</div>
         <div class="sidebar-stat-label">Need Attention</div>
+      </div>
+      <div class="sidebar-stat">
+        <div class="sidebar-stat-value">${workingCount}</div>
+        <div class="sidebar-stat-label">Working</div>
+      </div>
+      <div class="sidebar-stat">
+        <div class="sidebar-stat-value">${doneCount}</div>
+        <div class="sidebar-stat-label">Completed</div>
       </div>
     </div>
   `;

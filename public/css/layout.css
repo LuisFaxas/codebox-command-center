@@ -96,6 +96,7 @@ body {
   width: var(--sidebar-collapsed);
   padding: var(--space-sm);
   overflow: hidden;
+  align-items: center;
 }
 
 /* Sidebar toggle button */
