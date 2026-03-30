@@ -28,6 +28,7 @@
 }
 
 /* === EMBLA CAROUSEL === */
+.embla__viewport { position: relative; }
 .embla { overflow: hidden; width: 100%; }
 .embla__container { display: flex; gap: var(--space-lg); }
 .embla__slide { flex: 0 0 calc(25% - 12px); min-width: 280px; }
@@ -35,8 +36,45 @@
 .embla__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-standard); border: none; cursor: pointer; padding: 0; transition: background 0.2s ease; }
 .embla__dot.active { background: var(--accent-primary); }
 
+/* Navigation arrows */
+.embla__btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-standard);
+  background: rgba(15, 15, 30, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+.embla__btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: var(--border-active);
+}
+.embla__btn.disabled {
+  opacity: 0.2;
+  pointer-events: none;
+}
+.embla__btn--prev { left: -20px; }
+.embla__btn--next { right: -20px; }
+
 @media (max-width: 1200px) { .embla__slide { flex: 0 0 calc(50% - 8px); } }
-@media (max-width: 768px) { .embla__slide { flex: 0 0 100%; } }
+@media (max-width: 768px) {
+  .embla__slide { flex: 0 0 100%; }
+  .embla__btn { width: 36px; height: 36px; }
+  .embla__btn--prev { left: -8px; }
+  .embla__btn--next { right: -8px; }
+}
 
 /* === GLASS CARD STATES === */
 

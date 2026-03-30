@@ -66,7 +66,7 @@ body {
 .session-overview {
   grid-column: 1;
   grid-row: 2;
-  padding: var(--space-lg);
+  padding: var(--space-lg) var(--space-xl);
   overflow: hidden;
   min-width: 0; /* Prevent grid blowout — forces content to respect column width */
 }

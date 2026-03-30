@@ -11,6 +11,8 @@ let emblaApi = null;
 let emblaRoot = null;
 let emblaContainer = null;
 let dotsContainer = null;
+let prevBtn = null;
+let nextBtn = null;
 let durationInterval = null;
 
 function getPreviewText(session) {
@@ -28,7 +30,10 @@ function getPreviewText(session) {
 function setupEmblaStructure() {
   if (!grid) return;
 
-  // Create embla wrapper structure inside #session-grid
+  // Viewport wrapper for arrows positioning
+  const viewport = document.createElement('div');
+  viewport.className = 'embla__viewport';
+
   emblaRoot = document.createElement('div');
   emblaRoot.className = 'embla';
 
@@ -36,7 +41,23 @@ function setupEmblaStructure() {
   emblaContainer.className = 'embla__container';
 
   emblaRoot.appendChild(emblaContainer);
-  grid.appendChild(emblaRoot);
+  viewport.appendChild(emblaRoot);
+
+  // Prev arrow
+  prevBtn = document.createElement('button');
+  prevBtn.className = 'embla__btn embla__btn--prev';
+  prevBtn.setAttribute('aria-label', 'Previous sessions');
+  prevBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+
+  // Next arrow
+  nextBtn = document.createElement('button');
+  nextBtn.className = 'embla__btn embla__btn--next';
+  nextBtn.setAttribute('aria-label', 'Next sessions');
+  nextBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+
+  viewport.appendChild(prevBtn);
+  viewport.appendChild(nextBtn);
+  grid.appendChild(viewport);
 
   dotsContainer = document.createElement('div');
   dotsContainer.className = 'embla__dots';
@@ -52,25 +73,35 @@ function initEmbla() {
     dragFree: false
   });
 
-  emblaApi.on('init', updateDots);
-  emblaApi.on('reInit', updateDots);
-  emblaApi.on('select', updateDots);
+  emblaApi.on('init', updateNavigation);
+  emblaApi.on('reInit', updateNavigation);
+  emblaApi.on('select', updateNavigation);
+
+  if (prevBtn) prevBtn.addEventListener('click', () => emblaApi.scrollPrev());
+  if (nextBtn) nextBtn.addEventListener('click', () => emblaApi.scrollNext());
 }
 
-function updateDots() {
-  if (!emblaApi || !dotsContainer) return;
+function updateNavigation() {
+  if (!emblaApi) return;
 
-  const scrollSnaps = emblaApi.scrollSnapList();
-  const selectedIndex = emblaApi.selectedScrollSnap();
+  // Update dots
+  if (dotsContainer) {
+    const scrollSnaps = emblaApi.scrollSnapList();
+    const selectedIndex = emblaApi.selectedScrollSnap();
 
-  dotsContainer.innerHTML = scrollSnaps.map((_, i) => {
-    const activeClass = i === selectedIndex ? ' active' : '';
-    return `<button class="embla__dot${activeClass}" aria-label="Go to slide ${i + 1}"></button>`;
-  }).join('');
+    dotsContainer.innerHTML = scrollSnaps.map((_, i) => {
+      const activeClass = i === selectedIndex ? ' active' : '';
+      return `<button class="embla__dot${activeClass}" aria-label="Go to slide ${i + 1}"></button>`;
+    }).join('');
 
-  dotsContainer.querySelectorAll('.embla__dot').forEach((dot, i) => {
-    dot.addEventListener('click', () => emblaApi.scrollTo(i));
-  });
+    dotsContainer.querySelectorAll('.embla__dot').forEach((dot, i) => {
+      dot.addEventListener('click', () => emblaApi.scrollTo(i));
+    });
+  }
+
+  // Update arrow states
+  if (prevBtn) prevBtn.classList.toggle('disabled', !emblaApi.canScrollPrev());
+  if (nextBtn) nextBtn.classList.toggle('disabled', !emblaApi.canScrollNext());
 }
 
 function renderCard(session) {
