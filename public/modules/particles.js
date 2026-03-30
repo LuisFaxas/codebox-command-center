@@ -79,6 +79,7 @@ function initParticles(container, options = {}) {
   } = options;
 
   const mouse = { x: 0, y: 0 };
+  const smoothMouse = { x: 0, y: 0 };
 
   const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio, 2), depth: false, alpha: true });
   const gl = renderer.gl;
@@ -167,8 +168,11 @@ function initParticles(container, options = {}) {
     program.uniforms.uTime.value = elapsed * 0.001;
 
     if (moveOnHover) {
-      particles.position.x = -mouse.x * hoverFactor;
-      particles.position.y = -mouse.y * hoverFactor;
+      // Ease toward mouse position for smooth, intentional movement
+      smoothMouse.x += (mouse.x - smoothMouse.x) * 0.03;
+      smoothMouse.y += (mouse.y - smoothMouse.y) * 0.03;
+      particles.position.x = -smoothMouse.x * hoverFactor;
+      particles.position.y = -smoothMouse.y * hoverFactor;
     }
 
     particles.rotation.x = Math.sin(elapsed * 0.0002) * 0.1;

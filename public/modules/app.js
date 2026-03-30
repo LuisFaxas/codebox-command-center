@@ -42,12 +42,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     initParticles(mainArea, {
       count: 200,
       spread: 10,
-      speed: 0.1,
+      speed: 0.04,
       baseSize: 100,
       sizeRandomness: 1,
       cameraDistance: 20,
       moveOnHover: true,
-      hoverFactor: 1
+      hoverFactor: 0.4
     });
   }
 
