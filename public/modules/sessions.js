@@ -47,13 +47,13 @@ function setupEmblaStructure() {
   prevBtn = document.createElement('button');
   prevBtn.className = 'embla__btn embla__btn--prev';
   prevBtn.setAttribute('aria-label', 'Previous sessions');
-  prevBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+  prevBtn.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
 
   // Next arrow
   nextBtn = document.createElement('button');
   nextBtn.className = 'embla__btn embla__btn--next';
   nextBtn.setAttribute('aria-label', 'Next sessions');
-  nextBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+  nextBtn.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
 
   viewport.appendChild(prevBtn);
   viewport.appendChild(nextBtn);
