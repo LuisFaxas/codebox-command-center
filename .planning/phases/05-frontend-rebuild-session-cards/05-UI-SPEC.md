@@ -34,9 +34,8 @@ Declared values (must be multiples of 4):
 | Token | CSS Variable | Value | Usage |
 |-------|-------------|-------|-------|
 | xs | `--space-xs` | 4px | Icon gaps, badge internal padding |
-| sm | `--space-sm` | 8px | Inline element spacing, compact card padding |
-| md | `--space-md` | 12px | Card internal gaps, grid gap between session cards |
-| lg | `--space-lg` | 16px | Section padding, default element spacing |
+| sm | `--space-sm` | 8px | Inline element spacing, compact card padding, card-internal gaps |
+| lg | `--space-lg` | 16px | Section padding, default element spacing, grid gap between session cards |
 | xl | `--space-xl` | 24px | Panel padding, sidebar internal padding |
 | 2xl | `--space-2xl` | 32px | Major section separation |
 | 3xl | `--space-3xl` | 48px | Not used in this phase |
@@ -53,12 +52,17 @@ Exceptions:
 
 | Role | Size | Weight | Line Height | Font Family | CSS Variable |
 |------|------|--------|-------------|-------------|-------------|
-| Body | 14px (0.875rem) | 400 (regular) | 1.5 | DM Sans | `--text-body` |
-| Label / Small | 12px (0.75rem) | 500 (medium) | 1.4 | DM Sans | `--text-label` |
+| Label | 12px (0.75rem) | 600 (semibold) | 1.4 | DM Sans | `--text-label` |
+| Body / Code | 14px (0.875rem) | 400 (regular) | 1.5 | DM Sans / JetBrains Mono | `--text-body` |
 | Heading | 18px (1.125rem) | 600 (semibold) | 1.3 | DM Sans | `--text-heading` |
-| Display | 24px (1.5rem) | 700 (bold) | 1.2 | DM Sans | `--text-display` |
-| Code / Conversation | 13px (0.8125rem) | 400 (regular) | 1.6 | JetBrains Mono | `--text-code` |
-| Metric | 28px (1.75rem) | 600 (semibold) | 1.1 | DM Sans | `--text-metric` |
+| Display / Metric | 24px (1.5rem) | 600 (semibold) | 1.2 | DM Sans | `--text-display` |
+
+Usage mapping:
+- **Label (12px, 600):** Machine name, timestamps, connection label, status badge text, SDK disclaimer, section headings in sidebar, voice selector labels, slider labels, uppercase header title
+- **Body (14px, 400):** Body text, voice selector buttons, template textarea, tab switcher text, generate button text
+- **Body with JetBrains Mono (14px, 400):** Conversation messages, code blocks, last message preview, response input. Use `--text-body` size with mono font family.
+- **Heading (18px, 600):** Project name on cards, panel header project name, sidebar section headings
+- **Display (24px, 600):** Metric values (session count, etc.), page-level headings if needed
 
 Notes:
 - `font-display: swap` on Google Fonts link for fallback before load
@@ -168,7 +172,7 @@ Source: D-12 from CONTEXT.md, RESEARCH.md Pattern 2.
 | Grid Area | Column | Row | Overflow | Notes |
 |-----------|--------|-----|----------|-------|
 | Header | 1 / -1 | 1 | hidden | Spans full width including sidebar |
-| Session overview | 1 | 2 | `overflow-y: auto`, `max-height: 40vh` | Cards grid with `auto-fill, minmax(300px, 1fr)`, gap 12px, padding 16px |
+| Session overview | 1 | 2 | `overflow-y: auto`, `max-height: 40vh` | Cards grid with `auto-fill, minmax(300px, 1fr)`, gap 16px, padding 16px |
 | Conversation panel | 1 | 3 | `min-height: 0` (critical for flex scroll) | Flexbox column: message list (scroll) + input (fixed bottom) |
 | Sidebar | 2 | 2 / -1 | `overflow-y: auto` | 340px wide, collapses to 48px. Transition: `width 0.3s ease` |
 
@@ -187,7 +191,7 @@ Source: D-05, D-15, D-16 from CONTEXT.md, RESEARCH.md Pattern 1.
 | Title | "CLAUDE COMMAND CENTER" in `--text-label` size (12px), weight 600, letter-spacing 3px, uppercase, gradient text using `--accent-gradient` with `-webkit-background-clip: text` |
 | Connection dot | 8px circle, `--status-done` when connected, `--status-error` when disconnected, with `box-shadow: 0 0 6px` glow |
 | Connection label | "Connected" / "Disconnected" in `--text-muted`, 12px |
-| Sidebar toggle | 32x32px button, icon-only, `--text-secondary` at rest, `--accent-primary` when sidebar open |
+| Sidebar toggle | 32x32px button, icon-only, `--text-secondary` at rest, `--accent-primary` when sidebar open, `aria-label="Toggle voice settings sidebar"` |
 | z-index | 100 |
 
 Test contract: Preserve element with class `.connection-dot` and support `.connected` class toggle for Playwright compatibility.
@@ -200,11 +204,11 @@ Test contract: Preserve element with class `.connection-dot` and support `.conne
 | Min width | 300px (CSS Grid `minmax`) |
 | Padding | 16px |
 | Project name | `--text-heading` (18px, weight 600), `--text-primary` color, truncate with ellipsis at 1 line |
-| Status badge | Pill shape, 8px vertical / 12px horizontal padding, 999px border-radius, font 11px weight 600 uppercase. Background: status color at 15% opacity, text: status color at full. States: "WORKING" (`--status-working`), "DONE" (`--status-done`), "ATTENTION" (`--status-attention`), "STALE" (`--status-stale`), "ERROR" (`--status-error`) |
+| Status badge | Pill shape, 8px vertical / 16px horizontal padding, 999px border-radius, font 12px weight 600 uppercase. Background: status color at 15% opacity, text: status color at full. States: "WORKING" (`--status-working`), "DONE" (`--status-done`), "ATTENTION" (`--status-attention`), "STALE" (`--status-stale`), "ERROR" (`--status-error`) |
 | Machine name | `--text-label` (12px), `--text-secondary` color, preceded by a small device icon |
-| Last message preview | `--text-code` (13px JetBrains Mono), `--text-muted` color, 1 line truncated with ellipsis, `max-width: 100%` |
+| Last message preview | `--text-body` (14px JetBrains Mono), `--text-muted` color, 1 line truncated with ellipsis, `max-width: 100%` |
 | Duration | `--text-label` (12px), `--text-muted`, right-aligned, using `formatRelativeTime()` |
-| Reply button | Only visible on cards with status "ATTENTION". Pill button, `--accent-gradient` background, white text, 12px font weight 600, 8px/16px padding. Label: "Reply" |
+| Reply button | Only visible on cards with status "ATTENTION". Pill button, `--accent-gradient` background, white text, 12px font weight 600, 8px/16px padding. Label: "Send Reply" |
 | Attention animation | `@keyframes pulse-attention` -- border-left color oscillates between `--status-attention` at full and 40% opacity over 2s, `ease-in-out infinite` |
 | Click behavior | Sets this card as selected (`.glass-card` + accent border + glow shadow). Opens conversation in bottom panel. |
 | Cursor | `pointer` |
@@ -216,11 +220,11 @@ Test contract: Preserve element with class `.connection-dot` and support `.conne
 |---------|------|
 | Container | `.glass-card` background, `flex: 1`, `min-height: 0`, flex column |
 | Panel header | 48px height, padding 0 16px, border-bottom `var(--border-thin)`. Shows selected session project name (`--text-heading`, 18px) + status badge. If no session selected, show empty state. |
-| Message list | `flex: 1`, `overflow-y: auto`, padding 16px, gap 12px between messages |
-| User message | Left-aligned block, `--bg-elevated` background, 12px border-radius, padding 12px 16px. `--text-code` font (13px JetBrains Mono), `--text-primary` color. Max-width 80% of container. |
-| Assistant message | Left-aligned block, transparent background, padding 12px 16px. `--text-code` font, `--text-primary` color. Code blocks: `--bg-surface` background, 8px radius, padding 12px, `overflow-x: auto`. Max-width 90% of container. |
-| Message sender label | Above each message block, `--text-label` (12px), `--text-muted` color, "You" or "Claude" |
-| Response input | Fixed at panel bottom, 56px height, padding 8px 16px. Visible ONLY when selected session status is "attention". Input field: `--bg-primary` background, `--border-standard` border, 8px radius, `--text-code` font, `--text-primary` color, full width minus send button. Send button: 40x40px, `--accent-gradient` background, white arrow icon, 8px radius. |
+| Message list | `flex: 1`, `overflow-y: auto`, padding 16px, gap 8px between messages |
+| User message | Left-aligned block, `--bg-elevated` background, 12px border-radius, padding 16px. `--text-body` font (14px JetBrains Mono), `--text-primary` color. Max-width 80% of container. |
+| Assistant message | Left-aligned block, transparent background, padding 16px. `--text-body` font (14px JetBrains Mono), `--text-primary` color. Code blocks: `--bg-surface` background, 8px radius, padding 16px, `overflow-x: auto`. Max-width 90% of container. |
+| Message sender label | Above each message block, `--text-label` (12px, 600), `--text-muted` color, "You" or "Claude" |
+| Response input | Fixed at panel bottom, 56px height, padding 8px 16px. Visible ONLY when selected session status is "attention". Input field: `--bg-primary` background, `--border-standard` border, 8px radius, `--text-body` font (14px JetBrains Mono), `--text-primary` color, full width minus send button. Send button: 40x40px, `--accent-gradient` background, white arrow icon, 8px radius. |
 | Empty state | Centered vertically and horizontally when no session selected. See Copywriting Contract. |
 | Scroll behavior | Auto-scroll to bottom on new messages. Preserve scroll position if user has scrolled up. |
 
@@ -233,11 +237,11 @@ Test contract: Preserve element with class `.connection-dot` and support `.conne
 | Transition | `width 0.3s ease, opacity 0.2s ease` |
 | Section headings | `--text-heading` (18px, weight 600), `--text-primary`, margin-bottom 16px |
 | Section divider | `1px solid var(--border-thin)`, margin 24px 0 |
-| Tab switcher | "Done" / "Question" tabs for config context. Active tab: `--accent-primary` underline (2px), `--text-primary` text. Inactive: `--text-muted`, no underline. Font: 14px weight 500. |
-| Voice selector | Grid of voice option buttons (2 columns). Each: `.glass-subtle` background, padding 8px 12px, 8px radius, `--text-body` (14px). Selected: `--accent-primary` border. |
-| Template input | `textarea` element, `--bg-primary` background, `--border-standard` border, 8px radius, `--text-code` font, 14px, 4 rows default. Placeholder: "Hey, {project} is done!" |
-| Rate/Pitch sliders | Native `input[type="range"]` styled with accent color `--accent-primary`. Label above: `--text-label` (12px), value readout right-aligned same line. |
-| Generate samples button | Full-width button, `.glass-subtle` background, `--text-primary`, 14px weight 500, 8px radius, 40px height. Hover: `--bg-elevated`. |
+| Tab switcher | "Done" / "Question" tabs for config context. Active tab: `--accent-primary` underline (2px), `--text-primary` text. Inactive: `--text-muted`, no underline. Font: 14px weight 400. |
+| Voice selector | Grid of voice option buttons (2 columns). Each: `.glass-subtle` background, padding 8px 16px, 8px radius, `--text-body` (14px). Selected: `--accent-primary` border. |
+| Template input | `textarea` element, `--bg-primary` background, `--border-standard` border, 8px radius, `--text-body` font (14px JetBrains Mono), 4 rows default. Placeholder: "Hey, {project} is done!" |
+| Rate/Pitch sliders | Native `input[type="range"]` styled with accent color `--accent-primary`. Label above: `--text-label` (12px, 600), value readout right-aligned same line. |
+| Generate samples button | Full-width button, `.glass-subtle` background, `--text-primary`, 14px weight 400, 8px radius, 40px height. Hover: `--bg-elevated`. Label: "Generate Voice Samples" |
 
 ### 5. Toast Container
 
@@ -246,7 +250,7 @@ Test contract: Preserve element with class `.connection-dot` and support `.conne
 | Container ID | `#toast-container` (preserved for Playwright test compatibility) |
 | Position | `fixed`, `top: 68px` (below header), `right: 16px`, `z-index: 200` |
 | Toast class | `.toast` (preserved for Playwright test compatibility) |
-| Toast styling | `.glass-card` background, padding 12px 16px, max-width 360px, 12px radius |
+| Toast styling | `.glass-card` background, padding 16px, max-width 360px, 12px radius |
 | Done toast | Left border 3px `--status-done`, green icon |
 | Question toast | Left border 3px `--status-attention`, amber icon |
 | Auto-dismiss | Done: 8s, Question: 15s (preserved from NOTIF-03) |
@@ -266,7 +270,8 @@ Test contract: Preserve element with class `.connection-dot` and support `.conne
 | Error state (SDK unavailable) | "Could not load conversation. The SDK connection may be down. Check the server logs and try again." |
 | Error state (send failed) | "Response failed to send. The session may have ended. Check the terminal and try again." |
 | Attention card label | "Needs Your Input" (tooltip on attention badge) |
-| Reply button label | "Reply" (inline on attention cards) |
+| Reply button label | "Send Reply" (inline on attention cards) |
+| Generate samples button label | "Generate Voice Samples" (sidebar voice config section) |
 | Sidebar section: Voice | "Voice Settings" |
 | Sidebar section: Template | "Message Templates" |
 | Sidebar tab: Done | "Done" |
@@ -274,7 +279,7 @@ Test contract: Preserve element with class `.connection-dot` and support `.conne
 | Connection status: connected | "Connected" |
 | Connection status: disconnected | "Reconnecting..." |
 | Stale session indicator | "Inactive" (in `--text-muted`, replaces duration after 5 min) |
-| SDK response disclaimer | "Response sent via SDK transcript (experimental)" -- shown as `--text-muted` 11px text below response input |
+| SDK response disclaimer | "Response sent via SDK transcript (experimental)" -- shown as `--text-muted` 12px text below response input |
 
 No destructive actions in this phase. Session dismiss/acknowledge is deferred to Phase 6 (INT-02).
 
@@ -298,6 +303,7 @@ No destructive actions in this phase. Session dismiss/acknowledge is deferred to
 
 ### Sidebar Toggle
 - Click toggle button in header to collapse/expand sidebar
+- Button has `aria-label="Toggle voice settings sidebar"`
 - Collapsed: 48px wide, icon-only
 - Expanded: 340px wide, full config UI
 - State persisted in `localStorage` key `sidebar-collapsed`
