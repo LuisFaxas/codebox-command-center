@@ -2,6 +2,8 @@
 
 import { connectSSE } from '#sse';
 import { subscribe, updateSession, setConfig } from '#state';
+import { initSessions } from '#sessions';
+import { initConversation } from '#conversation';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load initial sessions
@@ -19,6 +21,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const config = await cfgRes.json();
     setConfig(config);
   } catch (e) { /* config load failed, SSE will sync */ }
+
+  // Initialize UI modules
+  initSessions();
+  initConversation();
 
   // Start SSE connection
   connectSSE();
