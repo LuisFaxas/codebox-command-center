@@ -192,6 +192,12 @@ function initSessions() {
 
   subscribe('session:select', updateSelectedState);
 
+  // Render any sessions already loaded into state (from GET /sessions before init)
+  const existing = state.sessions instanceof Map ? state.sessions : new Map();
+  for (const session of existing.values()) {
+    renderCard(session);
+  }
+
   // Update duration displays every 60s
   durationInterval = setInterval(updateDurations, 60000);
 }
