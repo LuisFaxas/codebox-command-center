@@ -79,9 +79,9 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 5 risk]: Agent SDK is pre-1.0 (v0.2.86) — needs targeted research before Phase 7
+- [CRITICAL — 2026-03-30]: Claude Agent SDK V2 discovered with full session control (session.send, resumeSession, listSessions, getSessionMessages). This changes phases 5-7 fundamentally. Dashboard can now be a real command center with response relay, not just a monitor. Phases 5-7 need re-research and re-planning before execution.
+- [Phase 5-7]: SDK V2 uses `unstable_v2_` prefix — preview status, API may change
 - [Phase 6 risk]: PostToolUse event volume unknown — may need debouncing strategy
-- [Phase 6]: tmux availability for "Focus" button needs verification
 
 ## Session Continuity
 

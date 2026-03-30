@@ -67,11 +67,13 @@ Complete awareness and control of all Claude Code sessions from one screen — t
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Single web app (not separate dashboard) | User wants one polished UI, not multiple pages/servers | — Pending |
+| Single web app (not separate dashboard) | User wants one polished UI, not multiple pages/servers | ✓ Good |
 | CodeBox as central hub | All coding happens there, always on, reachable via Tailscale | ✓ Good |
 | edge-tts for voice synthesis | Free, high-quality neural voices, no API key needed | ✓ Good |
-| Folder basename as primary project name | Simple, reliable — projects are named by their folder | — Pending |
-| Replace polling with SSE/WebSocket | Current 1s polling is wasteful and may cause timing issues | — Pending |
+| Folder basename as primary project name | Simple, reliable — projects are named by their folder | ✓ Good |
+| SSE for real-time push | Replaced polling in Phase 2, works well | ✓ Good |
+| Claude Agent SDK V2 for session control | Enables full conversation view, response relay, transcript reading from dashboard | — New (2026-03-30) |
+| Hooks for notifications + SDK for depth | Hooks stay for fast voice/push/toast. SDK adds session conversations, response relay | — New (2026-03-30) |
 
 ## Evolution
 
@@ -97,10 +99,13 @@ This document evolves at phase transitions and milestone boundaries.
 **Target features:**
 - Session-centric command center with deep per-session context
 - Screen-space-aware UI (16" screen, sidebar config, no wasted space)
-- Manager AI exploration (session monitoring, status reporting, instruction relay)
+- **Claude Agent SDK V2 integration** — full session control: read conversations, send responses, list/resume sessions
+- **Response relay from dashboard** — respond to Claude's questions directly from the web UI (enabled by SDK V2 session.send())
 - Cross-machine session aggregation with working remote hooks
-- Actionable sessions (respond, route attention, see history)
+- Manager AI that reads actual session transcripts (not just event snapshots)
 - Notification system preserved (no regression)
+
+**SDK Discovery (2026-03-30):** The Claude Agent SDK V2 (TypeScript, `unstable_v2_` prefix) provides `createSession()`, `resumeSession(sessionId)`, `session.send(message)`, `session.stream()`, `listSessions()`, `getSessionMessages()`. This transforms the project from a session monitor into a real command center. Phases 5-7 need re-planning to incorporate this.
 
 ---
 *Last updated: 2026-03-28 — v2.0 Center Console milestone started*
