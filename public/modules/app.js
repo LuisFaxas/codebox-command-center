@@ -2,6 +2,9 @@
 
 import { connectSSE } from '#sse';
 import { subscribe, updateSession, setConfig } from '#state';
+import { initSidebar } from '#sidebar';
+import { initToasts } from '#toasts';
+import { initAudio } from '#audio';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load initial sessions
@@ -22,6 +25,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Start SSE connection
   connectSSE();
+
+  // Initialize modules that may be provided by parallel plans
+  // Sessions and conversation modules loaded dynamically — may not exist yet
+  try {
+    const { initSessions } = await import('#sessions');
+    initSessions();
+  } catch (e) { /* sessions module not yet available */ }
+
+  try {
+    const { initConversation } = await import('#conversation');
+    initConversation();
+  } catch (e) { /* conversation module not yet available */ }
+
+  // Initialize sidebar, toasts, audio
+  initSidebar();
+  initToasts();
+  initAudio();
 
   // Sidebar toggle
   const sidebarToggle = document.querySelector('.sidebar-toggle');
