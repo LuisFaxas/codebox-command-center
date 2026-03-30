@@ -40,12 +40,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const mainArea = document.querySelector('.command-center');
   if (mainArea) {
     initParticles(mainArea, {
-      count: 80,
-      spread: 12,
-      speed: 0.05,
-      baseSize: 60,
+      count: 200,
+      spread: 10,
+      speed: 0.1,
+      baseSize: 100,
       sizeRandomness: 1,
-      cameraDistance: 25
+      cameraDistance: 20,
+      moveOnHover: true,
+      hoverFactor: 1
     });
   }
 

@@ -58,7 +58,7 @@ const fragmentShader = `
   void main() {
     vec2 uv = gl_PointCoord.xy;
     float d = length(uv - vec2(0.5));
-    float circle = smoothstep(0.5, 0.4, d) * 0.6;
+    float circle = smoothstep(0.5, 0.4, d) * 0.8;
     gl_FragColor = vec4(vColor + 0.15 * sin(uv.yxx + uTime + vRandom.y * 6.28), circle);
   }
 `;
@@ -67,14 +67,18 @@ function initParticles(container, options = {}) {
   if (!container) return null;
 
   const {
-    count = 120,
+    count = 200,
     spread = 10,
-    speed = 0.08,
-    baseSize = 80,
+    speed = 0.1,
+    baseSize = 100,
     sizeRandomness = 1,
     cameraDistance = 20,
+    moveOnHover = false,
+    hoverFactor = 1,
     colors = PARTICLE_COLORS
   } = options;
+
+  const mouse = { x: 0, y: 0 };
 
   const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio, 2), depth: false, alpha: true });
   const gl = renderer.gl;
@@ -100,6 +104,15 @@ function initParticles(container, options = {}) {
   }
   window.addEventListener('resize', resize);
   resize();
+
+  function handleMouseMove(e) {
+    const rect = container.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+  }
+  if (moveOnHover) {
+    container.addEventListener('mousemove', handleMouseMove);
+  }
 
   const positions = new Float32Array(count * 3);
   const randoms = new Float32Array(count * 4);
@@ -152,9 +165,15 @@ function initParticles(container, options = {}) {
     elapsed += delta * speed;
 
     program.uniforms.uTime.value = elapsed * 0.001;
+
+    if (moveOnHover) {
+      particles.position.x = -mouse.x * hoverFactor;
+      particles.position.y = -mouse.y * hoverFactor;
+    }
+
     particles.rotation.x = Math.sin(elapsed * 0.0002) * 0.1;
     particles.rotation.y = Math.cos(elapsed * 0.0005) * 0.15;
-    particles.rotation.z += 0.005 * speed;
+    particles.rotation.z += 0.01 * speed;
 
     renderer.render({ scene: particles, camera });
   }
@@ -164,6 +183,7 @@ function initParticles(container, options = {}) {
   return {
     destroy() {
       window.removeEventListener('resize', resize);
+      if (moveOnHover) container.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(raf);
       if (container.contains(gl.canvas)) container.removeChild(gl.canvas);
     }
