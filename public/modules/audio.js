@@ -13,11 +13,10 @@ function initAudio() {
   subscribe('trigger', (data) => {
     const src = `/notify-wav?type=${encodeURIComponent(data.type)}&project=${encodeURIComponent(data.project)}&t=${Date.now()}`;
     audioEl.src = src;
-    try {
-      audioEl.play();
-    } catch (e) {
-      // Autoplay may be blocked until user interaction — silently fail
-    }
+    audioEl.load();
+    audioEl.play().catch(() => {
+      // Autoplay blocked until user interaction — silently fail
+    });
   });
 }
 

@@ -85,8 +85,8 @@
 /* === CONNECTION DOT === */
 
 .connection-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--status-error);
   display: inline-block;
@@ -101,7 +101,7 @@
 
 #toast-container {
   position: fixed;
-  top: 68px;
+  top: 80px;
   right: 16px;
   z-index: 200;
   display: flex;
@@ -448,13 +448,13 @@
 }
 
 .slider-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
 .slider-value {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-secondary);
 }
@@ -512,7 +512,7 @@ input[type="range"] {
 }
 
 .session-machine {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
@@ -528,7 +528,7 @@ input[type="range"] {
 }
 
 .session-duration {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-muted);
 }
 
@@ -546,9 +546,9 @@ input[type="range"] {
   color: white;
   border: none;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  padding: 8px 16px;
+  padding: 8px 20px;
   cursor: pointer;
   margin-top: var(--space-sm);
 }
