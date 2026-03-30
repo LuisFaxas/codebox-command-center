@@ -169,8 +169,8 @@ function initParticles(container, options = {}) {
 
     if (moveOnHover) {
       // Ease toward mouse position for smooth, intentional movement
-      smoothMouse.x += (mouse.x - smoothMouse.x) * 0.03;
-      smoothMouse.y += (mouse.y - smoothMouse.y) * 0.03;
+      smoothMouse.x += (mouse.x - smoothMouse.x) * 0.022;
+      smoothMouse.y += (mouse.y - smoothMouse.y) * 0.022;
       particles.position.x = -smoothMouse.x * hoverFactor;
       particles.position.y = -smoothMouse.y * hoverFactor;
     }
