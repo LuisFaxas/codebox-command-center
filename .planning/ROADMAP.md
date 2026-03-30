@@ -96,8 +96,12 @@ Plans:
   3. Clicking a session card expands it to reveal the full event history timeline for that session
   4. Voice and template configuration lives in a persistent sidebar panel that does not obscure the session grid
   5. The frontend is split into ES modules loaded via import maps — no build step, no framework
-**Plans**: TBD
-**UI hint**: yes
+**Plans:** 4 plans
+Plans:
+- [ ] 05-01-PLAN.md — Install SDK, create sdk-bridge.js abstraction, add proxy endpoints and static file serving
+- [ ] 05-02-PLAN.md — CSS design system (FAXAS brand tokens), HTML shell with import map, core modules (state, SSE, utils)
+- [ ] 05-03-PLAN.md — Session card renderer with status badges, conversation panel with SDK message loading
+- [ ] 05-04-PLAN.md — Sidebar config panel, toast system, audio playback, final wiring and human verification
 
 ### Phase 6: Rich Hooks + Interaction
 **Goal**: Sessions show what Claude is actively doing (which tool, which file) and users can act on sessions directly from the dashboard
@@ -133,6 +137,6 @@ Phases execute in numeric order: 4 → 5 → 6 → 7
 | 2. Real-Time Connection + Server Restructure | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 3. Notifications Dashboard | v1.0 | 3/4 | Complete | 2026-03-28 |
 | 4. Session Foundation | v2.0 | 0/2 | Not started | - |
-| 5. Frontend Rebuild + Session Cards | v2.0 | 0/? | Not started | - |
+| 5. Frontend Rebuild + Session Cards | v2.0 | 0/4 | Not started | - |
 | 6. Rich Hooks + Interaction | v2.0 | 0/? | Not started | - |
 | 7. Manager AI | v2.0 | 0/? | Not started | - |
