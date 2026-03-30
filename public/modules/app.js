@@ -4,6 +4,9 @@ import { connectSSE } from '#sse';
 import { subscribe, updateSession, setConfig } from '#state';
 import { initSessions } from '#sessions';
 import { initConversation } from '#conversation';
+import { initSidebar } from '#sidebar';
+import { initToasts } from '#toasts';
+import { initAudio } from '#audio';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load initial sessions
@@ -25,6 +28,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize UI modules
   initSessions();
   initConversation();
+  initSidebar();
+  initToasts();
+  initAudio();
 
   // Start SSE connection
   connectSSE();
