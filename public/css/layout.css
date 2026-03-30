@@ -32,9 +32,10 @@ body {
   grid-row: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0 var(--space-xl);
   z-index: 100;
+  position: relative;
 }
 
 .header-title {
@@ -52,6 +53,8 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-xl);
+  position: absolute;
+  right: var(--space-xl);
 }
 
 .connection-status {
