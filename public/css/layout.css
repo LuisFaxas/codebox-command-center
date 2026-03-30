@@ -68,6 +68,8 @@ body {
   grid-row: 2;
   height: 160px;
   padding: var(--space-lg);
+  overflow: hidden;
+  min-width: 0; /* Prevent grid blowout — forces content to respect column width */
 }
 
 /* Conversation panel — column 1, row 3 */
