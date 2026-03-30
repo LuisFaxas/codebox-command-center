@@ -1,6 +1,7 @@
 import http from 'http';
 import { readFileSync, existsSync } from 'fs';
-import { join, basename } from 'path';
+import { join, basename, extname } from 'path';
+import { getSdkSessions, getSdkMessages, sendResponse } from './sdk-bridge.js';
 import { load as loadConfig, get as getConfig, update as updateConfig, save as saveConfig, getVoices, DATA_DIR, SAMPLES_DIR } from './config.js';
 import { generateSamples, generateCached, getCachePath, clearCache, getSamples, safeName } from './tts.js';
 import { emit, addClient, getClientCount } from './sse.js';
@@ -8,6 +9,42 @@ import { loadPush, getPublicKey, addSubscription, pushToAll } from './push.js';
 import { upsertSession, getAllSessions, loadSessions } from './sessions.js';
 
 const PORT = process.env.PORT || 3099;
+
+const MIME_TYPES = {
+  '.html': 'text/html',
+  '.css': 'text/css',
+  '.js': 'application/javascript',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.wav': 'audio/wav',
+  '.mp3': 'audio/mpeg',
+};
+
+function serveStatic(pathname, res) {
+  const publicDir = join(import.meta.dirname, 'public');
+  const filePath = join(publicDir, pathname);
+
+  // Prevent directory traversal
+  if (!filePath.startsWith(publicDir)) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return true;
+  }
+
+  try {
+    const data = readFileSync(filePath);
+    const ext = extname(filePath);
+    const mime = MIME_TYPES[ext] || 'application/octet-stream';
+    res.writeHead(200, { 'Content-Type': mime, 'Content-Length': data.length });
+    res.end(data);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 // Debounce map: prevents duplicate triggers within window
 const debounceMap = new Map();
@@ -199,7 +236,46 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify(getAllSessions()));
 
+  } else if (pathname === '/sdk/sessions' && req.method === 'GET') {
+    getSdkSessions().then(sessions => {
+      res.writeHead(200, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify(sessions));
+    });
+
+  } else if (/^\/sdk\/sessions\/([^/]+)\/messages$/.test(pathname) && req.method === 'GET') {
+    const id = pathname.match(/^\/sdk\/sessions\/([^/]+)\/messages$/)[1];
+    const limit = parseInt(params.get('limit')) || 20;
+    const offset = parseInt(params.get('offset')) || 0;
+    getSdkMessages(decodeURIComponent(id), limit, offset).then(messages => {
+      res.writeHead(200, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify(messages));
+    });
+
+  } else if (/^\/sdk\/sessions\/([^/]+)\/send$/.test(pathname) && req.method === 'POST') {
+    const id = pathname.match(/^\/sdk\/sessions\/([^/]+)\/send$/)[1];
+    let body = '';
+    req.on('data', c => {
+      body += c;
+      if (body.length > 4096) { req.destroy(); return; }
+    });
+    req.on('end', () => {
+      try {
+        const { text } = JSON.parse(body);
+        sendResponse(decodeURIComponent(id), text).then(result => {
+          const status = result.ok ? 200 : 500;
+          res.writeHead(status, {'Content-Type': 'application/json'});
+          res.end(JSON.stringify(result));
+        });
+      } catch(e) {
+        res.writeHead(400, {'Content-Type': 'application/json'});
+        res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
+      }
+    });
+
   } else {
+    // Try static file first (for .js, .css, etc.)
+    if (pathname !== '/' && serveStatic(pathname, res)) return;
+    // Fall through to index.html for SPA
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.end(indexHtml);
   }
