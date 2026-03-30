@@ -91,7 +91,6 @@
   }
 
   .session-card:hover {
-    transform: translateY(-2px);
     border-color: var(--border-active);
     box-shadow: var(--shadow-md);
   }
