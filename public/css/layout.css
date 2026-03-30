@@ -87,17 +87,15 @@ body {
   width: var(--sidebar-width);
   padding: var(--space-xl);
   overflow-y: auto;
-  transition: width 0.3s ease, opacity 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
 }
 
 .sidebar.collapsed {
   width: var(--sidebar-collapsed);
+  padding: var(--space-sm);
   overflow: hidden;
-}
-
-.sidebar.collapsed .sidebar-content {
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* Sidebar toggle button */

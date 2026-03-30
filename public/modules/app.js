@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Start SSE connection
   connectSSE();
 
-  // Sidebar toggle
+  // Sidebar toggle — collapse/expand, nav buttons handle expand-to-section
   const sidebarToggle = document.querySelector('.sidebar-toggle');
   const sidebar = document.getElementById('sidebar');
   if (sidebarToggle && sidebar) {
@@ -45,7 +45,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     sidebarToggle.addEventListener('click', () => {
-      sidebar.classList.toggle('collapsed');
+      const isCollapsed = sidebar.classList.contains('collapsed');
+      if (isCollapsed) {
+        sidebar.classList.remove('collapsed');
+      } else {
+        sidebar.classList.add('collapsed');
+      }
       localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
     });
   }

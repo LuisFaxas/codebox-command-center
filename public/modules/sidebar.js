@@ -1,4 +1,4 @@
-/* Config sidebar — voice selection, template editing, rate/pitch controls
+/* Config sidebar — multi-section navigation with voice settings, session stats, settings
    Source: 05-UI-SPEC.md Component 4 */
 
 import { state, subscribe, setConfig } from '#state';
@@ -14,6 +14,8 @@ const VOICES = [
 ];
 
 let sidebarEl = null;
+let contentEl = null;
+let activeSection = 'sessions';
 let activeTab = 'done';
 let saveTimer = null;
 
@@ -29,19 +31,104 @@ function initSidebar() {
   sidebarEl = document.getElementById('sidebar');
   if (!sidebarEl) return;
 
-  const content = sidebarEl.querySelector('.sidebar-content');
-  if (!content) return;
+  contentEl = sidebarEl.querySelector('.sidebar-content');
+  if (!contentEl) return;
 
-  content.innerHTML = buildSidebarHTML();
-  bindEvents(content);
-  loadTab();
+  // Bind nav button clicks
+  const navBtns = sidebarEl.querySelectorAll('.sidebar-nav-btn');
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const section = btn.dataset.section;
+
+      // If collapsed, expand first
+      if (sidebarEl.classList.contains('collapsed')) {
+        sidebarEl.classList.remove('collapsed');
+        localStorage.setItem('sidebar-collapsed', 'false');
+      }
+
+      switchSection(section);
+    });
+  });
+
+  // Render initial section
+  renderSection(activeSection);
+
+  // Re-render sessions section stats on session changes
+  subscribe('session:update', () => {
+    if (activeSection === 'sessions') renderSection('sessions');
+  });
+
+  subscribe('session:remove', () => {
+    if (activeSection === 'sessions') renderSection('sessions');
+  });
 
   subscribe('config:update', () => {
-    loadTab();
+    if (activeSection === 'voice') loadTab();
   });
 }
 
-function buildSidebarHTML() {
+function switchSection(section) {
+  activeSection = section;
+
+  // Update nav button active state
+  const navBtns = sidebarEl.querySelectorAll('.sidebar-nav-btn');
+  navBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.section === section);
+  });
+
+  renderSection(section);
+}
+
+function renderSection(section) {
+  if (!contentEl) return;
+
+  switch (section) {
+    case 'sessions':
+      renderSessionsSection();
+      break;
+    case 'voice':
+      renderVoiceSection();
+      break;
+    case 'settings':
+      renderSettingsSection();
+      break;
+  }
+}
+
+function renderSessionsSection() {
+  const sessions = state.sessions ? Object.values(state.sessions) : [];
+  const totalCount = sessions.length;
+  const attentionCount = sessions.filter(s => s.status === 'attention').length;
+
+  contentEl.innerHTML = `
+    <div class="sidebar-stats">
+      <div class="sidebar-stat">
+        <div class="sidebar-stat-value">${totalCount}</div>
+        <div class="sidebar-stat-label">Active Sessions</div>
+      </div>
+      <div class="sidebar-stat">
+        <div class="sidebar-stat-value">${attentionCount}</div>
+        <div class="sidebar-stat-label">Need Attention</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderVoiceSection() {
+  contentEl.innerHTML = buildVoiceHTML();
+  bindVoiceEvents(contentEl);
+  loadTab();
+}
+
+function renderSettingsSection() {
+  contentEl.innerHTML = `
+    <div class="sidebar-section" style="text-align:center;padding-top:var(--space-3xl)">
+      <p style="color:var(--text-muted);font-size:14px">Settings coming soon</p>
+    </div>
+  `;
+}
+
+function buildVoiceHTML() {
   return `
     <div class="sidebar-section">
       <h2 class="sidebar-section-title">Voice Settings</h2>
@@ -83,7 +170,7 @@ function buildSidebarHTML() {
   `;
 }
 
-function bindEvents(content) {
+function bindVoiceEvents(content) {
   // Tab switching
   content.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -140,7 +227,7 @@ function bindEvents(content) {
 }
 
 function loadTab() {
-  if (!sidebarEl) return;
+  if (!sidebarEl || activeSection !== 'voice') return;
   const cfg = currentConfig();
 
   // Update voice selection
@@ -200,7 +287,6 @@ async function saveConfig() {
       body: JSON.stringify({ type: activeTab, voice, template, rate, pitch })
     });
     if (res.ok) {
-      // Update local state
       const updated = { ...state.config };
       updated[activeTab] = { voice, template, rate, pitch };
       setConfig(updated);
