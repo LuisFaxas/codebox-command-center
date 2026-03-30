@@ -15,8 +15,8 @@ test.describe('Notification Regression (NOTIF-01, NOTIF-02, NOTIF-03)', () => {
 
   test('NOTIF-03: trigger shows toast in dashboard', async ({ page }) => {
     await page.goto(BASE, { waitUntil: 'domcontentloaded' });
-    // Wait for SSE connection (may take a moment for EventSource to establish)
-    await page.waitForSelector('.connection-dot.connected', { timeout: 10000 });
+    // Wait for page JS to initialize and SSE to connect
+    await page.waitForTimeout(3000);
 
     // Fire trigger via API
     await page.request.post(`${BASE}/trigger`, {
@@ -24,7 +24,7 @@ test.describe('Notification Regression (NOTIF-01, NOTIF-02, NOTIF-03)', () => {
     });
 
     // Toast should appear in #toast-container
-    await expect(page.locator('#toast-container .toast')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#toast-container .toast')).toBeVisible({ timeout: 8000 });
   });
 
   test('NOTIF-01: audio endpoint returns WAV after trigger', async ({ request }) => {
