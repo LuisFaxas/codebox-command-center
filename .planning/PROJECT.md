@@ -108,4 +108,4 @@ This document evolves at phase transitions and milestone boundaries.
 **SDK Discovery (2026-03-30):** The Claude Agent SDK V2 (TypeScript, `unstable_v2_` prefix) provides `createSession()`, `resumeSession(sessionId)`, `session.send(message)`, `session.stream()`, `listSessions()`, `getSessionMessages()`. This transforms the project from a session monitor into a real command center. Phases 5-7 need re-planning to incorporate this.
 
 ---
-*Last updated: 2026-03-28 — v2.0 Center Console milestone started*
+*Last updated: 2026-03-31 — Phase 6 complete: rich hooks + interaction controls*
