@@ -3,6 +3,7 @@
 import EmblaCarousel from 'embla-carousel';
 import { subscribe, setSelectedSession, state, getSession } from '#state';
 import { escapeHtml, formatRelativeTime, statusLabel } from '#utils';
+import { dismissSessionApi } from '#sdk';
 
 const DEVICE_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="9" rx="1.5"/><path d="M5 14h6M8 11v3"/></svg>';
 
@@ -17,7 +18,9 @@ let durationInterval = null;
 
 function getPreviewText(session) {
   if (session.status === 'attention' && session.questionText) {
-    return escapeHtml(session.questionText);
+    const text = session.questionText;
+    const truncated = text.length > 120 ? text.slice(0, 120) + '...' : text;
+    return escapeHtml(truncated);
   }
   switch (session.status) {
     case 'done': return 'Completed';
@@ -139,21 +142,41 @@ function renderCard(session) {
     ? `<button class="session-reply-btn" data-reply="${session.sessionId}">Send Reply</button>`
     : '';
 
+  const toolLine = session.currentTool
+    ? `<div class="session-tool">
+         <span class="tool-name">${escapeHtml(session.currentTool)}</span>
+         <span class="tool-target">${escapeHtml(session.currentTarget || '')}</span>
+       </div>`
+    : '';
+
+  const dismissBtn = `<button class="session-dismiss-btn" data-dismiss="${session.sessionId}" aria-label="Dismiss session" title="Dismiss">&times;</button>`;
+
   card.innerHTML = `
     <div class="session-card-header">
       <h3 class="session-project">${escapeHtml(session.project || 'Unknown')}</h3>
       <span class="status-badge badge-${session.status}">${statusLabel(session.status)}</span>
+      ${dismissBtn}
     </div>
     <div class="session-machine">
       ${DEVICE_ICON}
       <span>${escapeHtml(session.machine || 'unknown')}</span>
     </div>
+    ${toolLine}
     <p class="session-preview">${getPreviewText(session)}</p>
     <div class="session-meta">
       <span class="session-duration" data-activity="${session.lastActivity}">${durationText}</span>
       ${replyBtn}
     </div>
   `;
+
+  // Dismiss button click
+  const dismissEl = card.querySelector('[data-dismiss]');
+  if (dismissEl) {
+    dismissEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dismissSessionApi(session.sessionId);
+    });
+  }
 
   // Reply button click should also select the session
   const replyBtnEl = card.querySelector('[data-reply]');

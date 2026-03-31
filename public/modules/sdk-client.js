@@ -31,4 +31,13 @@ async function sendSdkResponse(sessionId, text) {
   }
 }
 
-export { fetchSdkSessions, fetchMessages, sendSdkResponse };
+async function dismissSessionApi(sessionId) {
+  try {
+    const res = await fetch(`/sessions/${encodeURIComponent(sessionId)}/dismiss`, { method: 'POST' });
+    return await res.json();
+  } catch (e) {
+    return { ok: false, error: 'Network error' };
+  }
+}
+
+export { fetchSdkSessions, fetchMessages, sendSdkResponse, dismissSessionApi };
