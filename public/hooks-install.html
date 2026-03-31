@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hook Installer - Voice Notifications</title>
+  <style>
+    :root {
+      --bg-primary: #0f0f1e;
+      --bg-surface: rgba(255, 255, 255, 0.03);
+      --bg-elevated: rgba(255, 255, 255, 0.06);
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-primary: #667eea;
+      --accent-via: #764ba2;
+      --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      --status-done: #22c55e;
+      --status-error: #ef4444;
+      --status-attention: #f59e0b;
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: 1px solid rgba(255, 255, 255, 0.10);
+      --glass-radius: 12px;
+      --border-thin: rgba(255, 255, 255, 0.08);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+      --font-primary: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-primary);
+      line-height: 1.6;
+      padding: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .warning-box {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: var(--glass-radius);
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      color: var(--status-attention);
+      font-size: 0.9rem;
+    }
+
+    .warning-box strong { color: #fbbf24; }
+
+    .prereq-box {
+      background: var(--glass-bg);
+      border: var(--glass-border);
+      border-radius: var(--glass-radius);
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .prereq-box code {
+      background: var(--bg-elevated);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-primary);
+    }
+
+    /* Platform tabs */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      background: var(--bg-surface);
+      border-radius: var(--glass-radius);
+      padding: 4px;
+      border: var(--glass-border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-family: var(--font-primary);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover { color: var(--text-primary); background: var(--bg-elevated); }
+    .tab-btn.active {
+      background: var(--accent-primary);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Steps */
+    .step {
+      margin-bottom: 28px;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .step-desc {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      padding-left: 44px;
+    }
+
+    /* Code blocks */
+    .code-block {
+      position: relative;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-thin);
+      border-radius: 8px;
+      margin-left: 44px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .code-block pre {
+      padding: 14px 16px;
+      padding-right: 60px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: var(--text-primary);
+      white-space: pre;
+      margin: 0;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-thin);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-family: var(--font-primary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover { background: var(--accent-primary); color: white; }
+    .copy-btn.copied { background: var(--status-done); color: white; }
+
+    /* Test section */
+    .test-section {
+      margin-left: 44px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .test-btn {
+      background: var(--accent-primary);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      padding: 10px 20px;
+      font-family: var(--font-primary);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .test-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .test-btn:active { transform: translateY(0); }
+    .test-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .test-result {
+      font-size: 0.9rem;
+      font-family: var(--font-mono);
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .test-result.success {
+      display: inline-block;
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--status-done);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .test-result.error {
+      display: inline-block;
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--status-error);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: var(--accent-primary);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .back-link:hover { text-decoration: underline; }
+
+    .note {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      margin-left: 44px;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <a href="/" class="back-link">&larr; Back to Dashboard</a>
+
+  <h1>Hook Installer</h1>
+  <p class="subtitle">Set up Claude Code notification hooks on a remote machine in 3 steps.</p>
+
+  <div class="warning-box">
+    <strong>Remote machines only.</strong> These instructions are for setting up hooks on machines OTHER than CodeBox (e.g., Lenovo, Mac). CodeBox hooks are configured separately and should not be modified using these instructions.
+  </div>
+
+  <div class="prereq-box">
+    <strong>Prerequisite:</strong> Node.js must be installed on the target machine. Verify with <code>node --version</code>.
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn" data-platform="macos">macOS</button>
+    <button class="tab-btn" data-platform="windows">Windows</button>
+    <button class="tab-btn" data-platform="linux">Linux</button>
+  </div>
+
+  <!-- macOS Instructions -->
+  <div class="tab-content" data-platform="macos">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">1</span>
+        <span class="step-title">Download the hook script</span>
+      </div>
+      <p class="step-desc">Create the hooks directory and download the notification script.</p>
+      <div class="code-block">
+        <pre id="macos-download">mkdir -p ~/.claude/hooks
+curl -o ~/.claude/hooks/notify-trigger.cjs <span class="origin-url"></span>/hooks/script</pre>
+        <button class="copy-btn" onclick="copyBlock('macos-download')">Copy</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">2</span>
+        <span class="step-title">Configure settings.json</span>
+      </div>
+      <p class="step-desc">Add the following hooks to <code>~/.claude/settings.json</code>. Merge with existing settings if the file already exists.</p>
+      <div class="code-block">
+        <pre id="macos-settings">{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs done",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs question",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs tool",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs session-start",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+        <button class="copy-btn" onclick="copyBlock('macos-settings')">Copy</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">3</span>
+        <span class="step-title">Test the connection</span>
+      </div>
+      <p class="step-desc">Verify the hook can reach the server. Run this in a terminal:</p>
+      <div class="code-block">
+        <pre id="macos-test">echo '{"session_id":"test","cwd":"/tmp"}' | VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs done</pre>
+        <button class="copy-btn" onclick="copyBlock('macos-test')">Copy</button>
+      </div>
+      <p class="note">Or test connectivity directly from this browser:</p>
+      <div class="test-section">
+        <button class="test-btn" id="test-btn" onclick="testConnection()">Test Connection</button>
+        <span class="test-result" id="test-result"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Windows Instructions -->
+  <div class="tab-content" data-platform="windows">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">1</span>
+        <span class="step-title">Download the hook script</span>
+      </div>
+      <p class="step-desc">Open PowerShell and run the following to create the hooks directory and download the script.</p>
+      <div class="code-block">
+        <pre id="windows-download">New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\hooks"
+Invoke-WebRequest -Uri "<span class="origin-url"></span>/hooks/script" -OutFile "$env:USERPROFILE\.claude\hooks\notify-trigger.cjs"</pre>
+        <button class="copy-btn" onclick="copyBlock('windows-download')">Copy</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">2</span>
+        <span class="step-title">Configure settings.json</span>
+      </div>
+      <p class="step-desc">Add the following hooks to <code>%USERPROFILE%\.claude\settings.json</code>. Merge with existing settings if the file already exists.</p>
+      <div class="code-block">
+        <pre id="windows-settings">{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "set VOICE_NOTIFY_URL=<span class="origin-url"></span>&& node %USERPROFILE%\\.claude\\hooks\\notify-trigger.cjs done",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "set VOICE_NOTIFY_URL=<span class="origin-url"></span>&& node %USERPROFILE%\\.claude\\hooks\\notify-trigger.cjs question",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "set VOICE_NOTIFY_URL=<span class="origin-url"></span>&& node %USERPROFILE%\\.claude\\hooks\\notify-trigger.cjs tool",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "set VOICE_NOTIFY_URL=<span class="origin-url"></span>&& node %USERPROFILE%\\.claude\\hooks\\notify-trigger.cjs session-start",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+        <button class="copy-btn" onclick="copyBlock('windows-settings')">Copy</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">3</span>
+        <span class="step-title">Test the connection</span>
+      </div>
+      <p class="step-desc">Verify the hook can reach the server. Run this in PowerShell:</p>
+      <div class="code-block">
+        <pre id="windows-test">echo '{"session_id":"test","cwd":"C:\\temp"}' | node "$env:USERPROFILE\.claude\hooks\notify-trigger.cjs" done</pre>
+        <button class="copy-btn" onclick="copyBlock('windows-test')">Copy</button>
+      </div>
+      <p class="note">Or test connectivity directly from this browser:</p>
+      <div class="test-section">
+        <button class="test-btn" onclick="testConnection()">Test Connection</button>
+        <span class="test-result" id="test-result-win"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Linux Instructions -->
+  <div class="tab-content" data-platform="linux">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">1</span>
+        <span class="step-title">Download the hook script</span>
+      </div>
+      <p class="step-desc">Create the hooks directory and download the notification script.</p>
+      <div class="code-block">
+        <pre id="linux-download">mkdir -p ~/.claude/hooks
+curl -o ~/.claude/hooks/notify-trigger.cjs <span class="origin-url"></span>/hooks/script</pre>
+        <button class="copy-btn" onclick="copyBlock('linux-download')">Copy</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">2</span>
+        <span class="step-title">Configure settings.json</span>
+      </div>
+      <p class="step-desc">Add the following hooks to <code>~/.claude/settings.json</code>. Merge with existing settings if the file already exists.</p>
+      <div class="code-block">
+        <pre id="linux-settings">{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs done",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs question",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs tool",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs session-start",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+        <button class="copy-btn" onclick="copyBlock('linux-settings')">Copy</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-number">3</span>
+        <span class="step-title">Test the connection</span>
+      </div>
+      <p class="step-desc">Verify the hook can reach the server. Run this in a terminal:</p>
+      <div class="code-block">
+        <pre id="linux-test">echo '{"session_id":"test","cwd":"/tmp"}' | VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs done</pre>
+        <button class="copy-btn" onclick="copyBlock('linux-test')">Copy</button>
+      </div>
+      <p class="note">Or test connectivity directly from this browser:</p>
+      <div class="test-section">
+        <button class="test-btn" onclick="testConnection()">Test Connection</button>
+        <span class="test-result" id="test-result-linux"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ORIGIN = window.location.origin;
+
+    // Inject origin URL into all placeholders
+    document.querySelectorAll('.origin-url').forEach(el => {
+      el.textContent = ORIGIN;
+    });
+
+    // Platform detection
+    function detectPlatform() {
+      const ua = navigator.userAgent.toLowerCase();
+      if (ua.includes('win')) return 'windows';
+      if (ua.includes('mac')) return 'macos';
+      return 'linux';
+    }
+
+    // Tab switching
+    function activateTab(platform) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.platform === platform);
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.dataset.platform === platform);
+      });
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => activateTab(btn.dataset.platform));
+    });
+
+    // Auto-detect platform on load
+    activateTab(detectPlatform());
+
+    // Copy to clipboard
+    function copyBlock(id) {
+      const pre = document.getElementById(id);
+      const text = pre.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = pre.parentElement.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    // Test connection
+    async function testConnection() {
+      const btns = document.querySelectorAll('.test-btn');
+      const results = document.querySelectorAll('.test-result');
+
+      btns.forEach(b => b.disabled = true);
+      results.forEach(r => { r.style.display = 'none'; r.className = 'test-result'; });
+
+      try {
+        const resp = await fetch('/hooks/test', { method: 'POST' });
+        const data = await resp.json();
+        results.forEach(r => {
+          r.textContent = 'Connected! Server: ' + data.server + ' at ' + data.timestamp;
+          r.classList.add('success');
+          r.style.display = 'inline-block';
+        });
+      } catch (e) {
+        results.forEach(r => {
+          r.textContent = 'Connection failed: ' + e.message;
+          r.classList.add('error');
+          r.style.display = 'inline-block';
+        });
+      } finally {
+        btns.forEach(b => b.disabled = false);
+      }
+    }
+  </script>
+</body>
+</html>
