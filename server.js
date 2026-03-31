@@ -272,6 +272,33 @@ const server = http.createServer((req, res) => {
       }
     });
 
+  } else if (pathname === '/hooks/install') {
+    const installPath = join(import.meta.dirname, 'public', 'hooks-install.html');
+    try {
+      const data = readFileSync(installPath, 'utf8');
+      res.writeHead(200, {'Content-Type': 'text/html'});
+      res.end(data);
+    } catch(e) {
+      res.writeHead(404); res.end('Not found');
+    }
+
+  } else if (pathname === '/hooks/script') {
+    const scriptPath = join(import.meta.dirname, 'hooks', 'notify-trigger.cjs');
+    try {
+      const data = readFileSync(scriptPath);
+      res.writeHead(200, {
+        'Content-Type': 'application/javascript',
+        'Content-Disposition': 'attachment; filename="notify-trigger.cjs"'
+      });
+      res.end(data);
+    } catch(e) {
+      res.writeHead(404); res.end('Not found');
+    }
+
+  } else if (pathname === '/hooks/test' && req.method === 'POST') {
+    res.writeHead(200, {'Content-Type': 'application/json'});
+    res.end(JSON.stringify({ ok: true, server: 'voice-notifications', timestamp: new Date().toISOString() }));
+
   } else {
     // Try static file first (for .js, .css, etc.)
     if (pathname !== '/' && serveStatic(pathname, res)) return;
