@@ -119,6 +119,26 @@ Plans:
 - [ ] 06-02-PLAN.md — Frontend session cards with tool activity, conversation toolbar, SDK matching, clipboard actions
 - [ ] 06-03-PLAN.md — Hook installer page with platform-specific setup instructions
 
+### Phase 06.1: Conversation Panel Fix (INSERTED)
+
+**Goal:** Fix SDK message content parsing and conversation panel wiring so clicking a session card loads and displays conversation history
+**Requirements**: SESS-04
+**Depends on:** Phase 6
+**Plans:** 1 plan
+
+Plans:
+- [ ] 06.1-01-PLAN.md — Fix extractTextContent for string/array content + remove dead error check in conversation panel
+
+### Phase 06.2: Session Deduplication and Multi-Tab (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 6
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 06.2 to break down)
+
 ### Phase 7: Manager AI
 **Goal**: An AI observer provides on-demand summaries of what all sessions are doing and flags sessions that may need attention
 **Depends on**: Phase 6
@@ -143,4 +163,5 @@ Phases execute in numeric order: 4 → 5 → 6 → 7
 | 4. Session Foundation | v2.0 | 2/2 | Complete | 2026-03-30 |
 | 5. Frontend Rebuild + Session Cards | v2.0 | 4/4 | Complete | 2026-03-30 |
 | 6. Rich Hooks + Interaction | v2.0 | 0/3 | Planning | - |
+| 06.1. Conversation Panel Fix | v2.0 | 0/1 | Planning | - |
 | 7. Manager AI | v2.0 | 0/? | Not started | - |
