@@ -93,7 +93,7 @@ Requirements for v2.0 milestone. Transforms notification tool into unified sessi
 - [x] **SESS-01**: Server tracks all active sessions with project, machine, status, cwd, and last activity timestamp
 - [x] **SESS-02**: Session state persists across server restarts via JSON file storage
 - [ ] **SESS-03**: Session cards display project name, machine, status badge, duration, current tool, and last message
-- [ ] **SESS-04**: User can click a session card to expand full event history timeline
+- [x] **SESS-04**: User can click a session card to expand full event history timeline
 - [x] **SESS-05**: Sessions transition through working/done/attention/stale states based on hook events
 - [x] **SESS-06**: Stale sessions auto-dim after 5 minutes and auto-remove after 30 minutes
 
@@ -217,7 +217,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTIF-02 | Phase 4 | Complete |
 | NOTIF-03 | Phase 4 | Complete |
 | SESS-03 | Phase 5 | Pending |
-| SESS-04 | Phase 5 | Pending |
+| SESS-04 | Phase 5 | Complete |
 | UI-05 | Phase 5 | Complete |
 | UI-06 | Phase 5 | Pending |
 | UI-07 | Phase 5 | Complete |

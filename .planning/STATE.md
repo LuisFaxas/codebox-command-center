@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Center Console
-status: Ready to plan
+status: Phase complete — ready for verification
 stopped_at: Completed 06.1-01-PLAN.md
-last_updated: "2026-03-31T02:37:00Z"
+last_updated: "2026-03-31T02:37:42.289Z"
 progress:
-  total_phases: 4
+  total_phases: 6
   completed_phases: 2
-  total_plans: 9
+  total_plans: 10
   completed_plans: 8
 ---
 
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Complete awareness and control of all Claude Code sessions from one screen
-**Current focus:** Phase 06 — rich-hooks-interaction
+**Current focus:** Phase 06.1 — conversation-panel-fix
 
 ## Current Position
 
-Phase: 7
-Plan: Not started
+Phase: 06.1 (conversation-panel-fix) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -63,6 +63,11 @@ Plan: Not started
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 06.1 inserted after Phase 6: Conversation Panel Fix (URGENT) — SDK message loading broken (string vs array content), conversation panel not rendering history when clicking session cards
+- Phase 06.2 inserted after Phase 6: Session Deduplication and Multi-Tab (URGENT) — duplicate cards for same project, need one card per project with multi-session switching in conversation panel
+
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
@@ -99,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T02:37:00Z
+Last session: 2026-03-31T02:37:42.284Z
 Stopped at: Completed 06.1-01-PLAN.md
 Resume file: None
