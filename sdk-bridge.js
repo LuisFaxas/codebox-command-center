@@ -1,11 +1,15 @@
 import { listSessions, getSessionMessages, unstable_v2_resumeSession } from '@anthropic-ai/claude-agent-sdk';
 
-function extractTextContent(message) {
+export function extractTextContent(message) {
   if (!message || !message.content) return '';
-  return message.content
-    .filter(block => block.type === 'text')
-    .map(block => block.text)
-    .join('\n');
+  if (typeof message.content === 'string') return message.content;
+  if (Array.isArray(message.content)) {
+    return message.content
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
+      .join('\n');
+  }
+  return '';
 }
 
 export async function getSdkSessions() {
