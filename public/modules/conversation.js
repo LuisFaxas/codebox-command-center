@@ -335,12 +335,6 @@ async function loadConversation(sessionId) {
 
   // Load messages from SDK
   const messages = await fetchMessages(sdkId, 20, 0);
-
-  if (messages === null || (Array.isArray(messages) && messages.length === 0 && !Array.isArray(messages))) {
-    renderErrorState();
-    return;
-  }
-
   renderMessages(messages);
 }
 
