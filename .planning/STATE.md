@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Center Console
 status: Ready to plan
-stopped_at: Phase 6 context gathered
-last_updated: "2026-03-30T23:44:45.074Z"
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-03-31T01:05:09.447Z"
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 6
-  completed_plans: 5
+  completed_phases: 2
+  total_plans: 9
+  completed_plans: 8
 ---
 
 # Project State
@@ -19,11 +19,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Complete awareness and control of all Claude Code sessions from one screen
-**Current focus:** Phase 06 — Rich Hooks + Interaction (next)
+**Current focus:** Phase 06 — rich-hooks-interaction
 
 ## Current Position
 
-Phase: 5
+Phase: 7
 Plan: Not started
 
 ## Performance Metrics
@@ -56,6 +56,9 @@ Plan: Not started
 | Phase 04 P02 | 6min | 3 tasks | 5 files |
 | Phase 05 P02 | 3min | 2 tasks | 8 files |
 | Phase 05 P03 | 2min | 2 tasks | 4 files |
+| Phase 06 P01 | 6min | 2 tasks | 3 files |
+| Phase 06 P03 | 2min | 1 tasks | 2 files |
+| Phase 06 P02 | 4min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -76,6 +79,11 @@ Recent decisions affecting current work:
 - [Phase 04]: Client trigger handler is notification-only; session grid driven by session:update SSE events
 - [Phase 05]: Replaced 1551-line monolith HTML with 73-line shell plus ES modules via import maps
 - [Phase 05]: Simple innerHTML re-render on session:update rather than DOM diffing for cards
+- [Phase 06]: Tool events bypass notification pipeline entirely, routed to handleToolUpdate with 1s debounce
+- [Phase 06]: stop_hook_active guard limited to done type only since tool/session-start have no loop risk
+- [Phase 06]: Used window.location.origin for dynamic server URL in hook installer page
+- [Phase 06]: Clipboard uses navigator.clipboard.writeText with execCommand fallback for HTTP contexts
+- [Phase 06]: SDK session matching: sdkSessionId first, cwd-based fallback, then empty state
 
 ### Pending Todos
 
@@ -89,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T23:44:45.068Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-rich-hooks-interaction/06-CONTEXT.md
+Last session: 2026-03-31T01:00:21.639Z
+Stopped at: Completed 06-02-PLAN.md
+Resume file: None

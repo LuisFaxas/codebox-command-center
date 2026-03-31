@@ -115,7 +115,7 @@ Plans:
   5. Server provides a /hooks/install endpoint that generates ready-to-paste hook config for any machine (CodeBox, Lenovo, Mac)
 **Plans:** 3 plans
 Plans:
-- [ ] 06-01-PLAN.md — Extend hook script for 4 event types, enhance session store and server trigger routing
+- [x] 06-01-PLAN.md — Extend hook script for 4 event types, enhance session store and server trigger routing
 - [ ] 06-02-PLAN.md — Frontend session cards with tool activity, conversation toolbar, SDK matching, clipboard actions
 - [ ] 06-03-PLAN.md — Hook installer page with platform-specific setup instructions
 
