@@ -17,7 +17,11 @@ function sessionDelta(session) {
   return delta;
 }
 
-export function upsertSession({ sessionId, project, machine, cwd, type, questionText }) {
+// Debounce timers for tool SSE emissions (max 1 per second per session)
+const toolDebounceTimers = new Map();
+const TOOL_DEBOUNCE_MS = 1000;
+
+export function upsertSession({ sessionId, project, machine, cwd, type, questionText, toolName, toolTarget, source, sdkSessionId }) {
   const now = Date.now();
   let session = sessions.get(sessionId);
 
@@ -35,6 +39,11 @@ export function upsertSession({ sessionId, project, machine, cwd, type, question
       events: [],
       questionText: null,
       questionTimestamp: null,
+      currentTool: null,
+      currentTarget: null,
+      source: null,
+      sdkSessionId: null,
+      dismissed: false,
     };
     sessions.set(sessionId, session);
   }
@@ -50,8 +59,21 @@ export function upsertSession({ sessionId, project, machine, cwd, type, question
     session.status = 'attention';
     session.questionText = questionText || null;
     session.questionTimestamp = now;
+    session.currentTool = null;
+    session.currentTarget = null;
+  } else if (type === 'tool') {
+    session.status = 'working';
+    session.currentTool = toolName || null;
+    session.currentTarget = toolTarget || null;
+  } else if (type === 'session-start') {
+    session.status = 'working';
+    session.source = source || 'startup';
+    session.sdkSessionId = sdkSessionId || sessionId;
   } else {
+    // done
     session.status = 'done';
+    session.currentTool = null;
+    session.currentTarget = null;
   }
 
   session.events.push({ type: type || 'done', timestamp: now });
@@ -59,8 +81,84 @@ export function upsertSession({ sessionId, project, machine, cwd, type, question
     session.events.shift();
   }
 
+  // Clear tool debounce on non-tool events so they emit immediately
+  if (type !== 'tool') {
+    const timer = toolDebounceTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      toolDebounceTimers.delete(sessionId);
+    }
+  }
+
   emit('session:update', sessionDelta(session));
   return session;
+}
+
+export function handleToolUpdate(sessionId, toolName, toolTarget) {
+  const now = Date.now();
+  let session = sessions.get(sessionId);
+
+  if (!session) {
+    session = {
+      sessionId,
+      project: '',
+      machine: '',
+      cwd: '',
+      status: 'working',
+      firstSeen: now,
+      lastActivity: now,
+      lastEventType: 'tool',
+      eventCount: 0,
+      events: [],
+      questionText: null,
+      questionTimestamp: null,
+      currentTool: null,
+      currentTarget: null,
+      source: null,
+      sdkSessionId: null,
+      dismissed: false,
+    };
+    sessions.set(sessionId, session);
+  }
+
+  session.currentTool = toolName || null;
+  session.currentTarget = toolTarget || null;
+  session.lastActivity = now;
+  session.lastEventType = 'tool';
+  session.status = 'working';
+  session.eventCount++;
+
+  session.events.push({ type: 'tool', timestamp: now });
+  if (session.events.length > MAX_EVENTS_PER_SESSION) {
+    session.events.shift();
+  }
+
+  // Debounce SSE emission: max 1 per second per session
+  if (!toolDebounceTimers.has(sessionId)) {
+    emit('session:update', sessionDelta(session));
+    toolDebounceTimers.set(sessionId, setTimeout(() => {
+      toolDebounceTimers.delete(sessionId);
+    }, TOOL_DEBOUNCE_MS));
+  } else {
+    // A timer is pending — schedule one final emission when it expires
+    clearTimeout(toolDebounceTimers.get(sessionId));
+    toolDebounceTimers.set(sessionId, setTimeout(() => {
+      toolDebounceTimers.delete(sessionId);
+      const s = sessions.get(sessionId);
+      if (s) emit('session:update', sessionDelta(s));
+    }, TOOL_DEBOUNCE_MS));
+  }
+
+  return session;
+}
+
+export function dismissSession(sessionId) {
+  const session = sessions.get(sessionId);
+  if (session) {
+    session.dismissed = true;
+  }
+  sessions.delete(sessionId);
+  emit('session:remove', { sessionId });
 }
 
 export function getAllSessions() {

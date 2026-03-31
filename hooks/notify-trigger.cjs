@@ -104,8 +104,8 @@ function sendNotification(hookInput) {
     const cwd = hookInput.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd();
     const hookEventName = hookInput.hook_event_name || '';
 
-    // Guard against infinite loop (Research Pitfall 1)
-    if (hookInput.stop_hook_active === true) {
+    // Guard against infinite loop (Research Pitfall 1) — only for 'done' type
+    if (type === 'done' && hookInput.stop_hook_active === true) {
       process.exit(0);
     }
 
@@ -113,14 +113,32 @@ function sendNotification(hookInput) {
     const projectRoot = findProjectRoot(cwd);
     const project = resolveProjectName(projectRoot);
 
-    const payload = JSON.stringify({
+    const payload = {
       type,
       project,
       sessionId,
       machine: os.hostname(),
       cwd,
       timestamp: new Date().toISOString()
-    });
+    };
+
+    // Event-specific payload enrichment
+    if (type === 'tool') {
+      payload.toolName = hookInput.tool_name || '';
+      payload.toolTarget = hookInput.tool_input?.file_path
+        || hookInput.tool_input?.command?.substring(0, 100)
+        || hookInput.tool_input?.pattern
+        || hookInput.tool_input?.query
+        || hookInput.tool_input?.url
+        || '';
+    } else if (type === 'session-start') {
+      payload.source = hookInput.source || 'startup';
+      payload.model = hookInput.model || '';
+    } else if (type === 'question') {
+      payload.questionText = hookInput.message || '';
+    }
+
+    const payloadStr = JSON.stringify(payload);
 
     const parsed = new URL(SERVER_URL);
     const client = parsed.protocol === 'https:' ? https : http;
@@ -132,7 +150,7 @@ function sendNotification(hookInput) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload)
+        'Content-Length': Buffer.byteLength(payloadStr)
       }
     }, (res) => {
       res.resume();
@@ -141,7 +159,7 @@ function sendNotification(hookInput) {
 
     req.on('error', () => process.exit(0));
     req.setTimeout(4000, () => { req.destroy(); process.exit(0); });
-    req.write(payload);
+    req.write(payloadStr);
     req.end();
   } catch(e) {
     process.exit(0);
