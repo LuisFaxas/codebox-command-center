@@ -57,6 +57,20 @@ body {
   right: var(--space-xl);
 }
 
+.header-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-thin);
+  transition: color 0.2s, border-color 0.2s;
+}
+.header-link:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
 .connection-status {
   display: flex;
   align-items: center;

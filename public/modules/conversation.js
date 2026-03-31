@@ -135,8 +135,12 @@ function renderPanelStructure() {
   const dismissBtn = panel.querySelector('.dismiss-btn');
   dismissBtn.addEventListener('click', () => {
     if (state.selectedSessionId) {
-      dismissSessionApi(state.selectedSessionId);
-      renderEmptyState('no-selection');
+      const session = getSession(state.selectedSessionId);
+      const name = session?.project || state.selectedSessionId;
+      if (confirm(`Dismiss session "${name}"? This removes it from the dashboard.`)) {
+        dismissSessionApi(state.selectedSessionId);
+        renderEmptyState('no-selection');
+      }
     }
   });
 

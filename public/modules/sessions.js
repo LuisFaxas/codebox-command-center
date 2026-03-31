@@ -143,25 +143,21 @@ function renderCard(session) {
     : '';
 
   const toolLine = session.currentTool
-    ? `<div class="session-tool">
-         <span class="tool-name">${escapeHtml(session.currentTool)}</span>
-         <span class="tool-target">${escapeHtml(session.currentTarget || '')}</span>
-       </div>`
+    ? `<span class="tool-name">${escapeHtml(session.currentTool)}</span>
+       <span class="tool-target">${escapeHtml(session.currentTarget || '')}</span>`
     : '';
 
-  const dismissBtn = `<button class="session-dismiss-btn" data-dismiss="${session.sessionId}" aria-label="Dismiss session" title="Dismiss">&times;</button>`;
-
   card.innerHTML = `
+    <button class="session-dismiss-btn" data-dismiss="${session.sessionId}" aria-label="Dismiss session" title="Dismiss">&times;</button>
     <div class="session-card-header">
       <h3 class="session-project">${escapeHtml(session.project || 'Unknown')}</h3>
       <span class="status-badge badge-${session.status}">${statusLabel(session.status)}</span>
-      ${dismissBtn}
     </div>
     <div class="session-machine">
       ${DEVICE_ICON}
       <span>${escapeHtml(session.machine || 'unknown')}</span>
     </div>
-    ${toolLine}
+    <div class="session-tool">${toolLine}</div>
     <p class="session-preview">${getPreviewText(session)}</p>
     <div class="session-meta">
       <span class="session-duration" data-activity="${session.lastActivity}">${durationText}</span>
@@ -169,12 +165,15 @@ function renderCard(session) {
     </div>
   `;
 
-  // Dismiss button click
+  // Dismiss button click — confirm first to avoid accidental dismissal
   const dismissEl = card.querySelector('[data-dismiss]');
   if (dismissEl) {
     dismissEl.addEventListener('click', (e) => {
       e.stopPropagation();
-      dismissSessionApi(session.sessionId);
+      const name = session.project || session.sessionId;
+      if (confirm(`Dismiss session "${name}"? This removes it from the dashboard.`)) {
+        dismissSessionApi(session.sessionId);
+      }
     });
   }
 

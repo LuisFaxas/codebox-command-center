@@ -99,10 +99,10 @@ Requirements for v2.0 milestone. Transforms notification tool into unified sessi
 
 ### Hooks (v2)
 
-- [ ] **HOOK-05**: PostToolUse hooks fire for tool activity tracking (which tool, file being edited)
-- [ ] **HOOK-06**: SessionStart hooks register new sessions with the server
-- [ ] **HOOK-07**: Server provides a `/hooks/install` endpoint that generates ready-to-paste config for any machine
-- [ ] **HOOK-08**: Question events display the actual question text in the session card
+- [x] **HOOK-05**: PostToolUse hooks fire for tool activity tracking (which tool, file being edited)
+- [x] **HOOK-06**: SessionStart hooks register new sessions with the server
+- [x] **HOOK-07**: Server provides a `/hooks/install` endpoint that generates ready-to-paste config for any machine
+- [x] **HOOK-08**: Question events display the actual question text in the session card
 
 ### UI/Layout (v2)
 
@@ -121,9 +121,9 @@ Requirements for v2.0 milestone. Transforms notification tool into unified sessi
 
 ### Interaction
 
-- [ ] **INT-01**: Question session cards show a "Focus Terminal" button to jump to the right tmux window
-- [ ] **INT-02**: User can dismiss/acknowledge sessions from the dashboard
-- [ ] **INT-03**: User can copy question text to clipboard from the dashboard
+- [x] **INT-01**: Question session cards show a "Focus Terminal" button to jump to the right tmux window
+- [x] **INT-02**: User can dismiss/acknowledge sessions from the dashboard
+- [x] **INT-03**: User can copy question text to clipboard from the dashboard
 
 ### Notifications (preserved from v1)
 
@@ -223,13 +223,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-07 | Phase 5 | Complete |
 | UI-08 | Phase 5 | Pending |
 | UI-09 | Phase 5 | Pending |
-| HOOK-05 | Phase 6 | Pending |
-| HOOK-06 | Phase 6 | Pending |
-| HOOK-07 | Phase 6 | Pending |
-| HOOK-08 | Phase 6 | Pending |
-| INT-01 | Phase 6 | Pending |
-| INT-02 | Phase 6 | Pending |
-| INT-03 | Phase 6 | Pending |
+| HOOK-05 | Phase 6 | Complete |
+| HOOK-06 | Phase 6 | Complete |
+| HOOK-07 | Phase 6 | Complete |
+| HOOK-08 | Phase 6 | Complete |
+| INT-01 | Phase 6 | Complete |
+| INT-02 | Phase 6 | Complete |
+| INT-03 | Phase 6 | Complete |
 | MGRAI-01 | Phase 7 | Pending |
 | MGRAI-02 | Phase 7 | Pending |
 | MGRAI-03 | Phase 7 | Pending |
