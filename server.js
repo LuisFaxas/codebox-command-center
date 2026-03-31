@@ -6,7 +6,7 @@ import { load as loadConfig, get as getConfig, update as updateConfig, save as s
 import { generateSamples, generateCached, getCachePath, clearCache, getSamples, safeName } from './tts.js';
 import { emit, addClient, getClientCount } from './sse.js';
 import { loadPush, getPublicKey, addSubscription, pushToAll } from './push.js';
-import { upsertSession, getAllSessions, loadSessions } from './sessions.js';
+import { upsertSession, handleToolUpdate, dismissSession, getAllSessions, loadSessions } from './sessions.js';
 
 const PORT = process.env.PORT || 3099;
 
@@ -66,6 +66,16 @@ setInterval(() => {
     if (ts < cutoff) debounceMap.delete(key);
   }
 }, 60000);
+
+function extractToolTarget(toolName, rawTarget) {
+  if (!rawTarget) return '';
+  // For file paths, show last 2 segments
+  if (rawTarget.includes('/') || rawTarget.includes('\\')) {
+    const parts = rawTarget.replace(/\\/g, '/').split('/');
+    return parts.slice(-2).join('/');
+  }
+  return rawTarget.substring(0, 80);
+}
 
 // Initialize config, push, and sessions
 loadConfig();
@@ -164,10 +174,35 @@ const server = http.createServer((req, res) => {
     });
     req.on('end', () => {
       try {
-        const { type: rawType, project: rawProject, sessionId, machine, cwd, timestamp } = JSON.parse(body);
+        const { type: rawType, project: rawProject, sessionId, machine, cwd, timestamp, toolName, toolTarget, questionText, source } = JSON.parse(body);
         const type = rawType || 'done';
         const project = rawProject || '';
 
+        // Route by event type
+        if (type === 'tool') {
+          // Silent state update — no notifications, no debounce check
+          handleToolUpdate(sessionId || 'unknown', toolName || '', extractToolTarget(toolName, toolTarget));
+          res.writeHead(200, {'Content-Type': 'application/json'});
+          res.end(JSON.stringify({ ok: true, type: 'tool' }));
+          return;
+        }
+
+        if (type === 'session-start') {
+          // Register session immediately — no notifications, skip debounce
+          upsertSession({
+            sessionId: sessionId || 'unknown',
+            project,
+            machine: machine || 'unknown',
+            cwd: cwd || '',
+            type: 'session-start',
+            source: source || 'startup'
+          });
+          res.writeHead(200, {'Content-Type': 'application/json'});
+          res.end(JSON.stringify({ ok: true, type: 'session-start' }));
+          return;
+        }
+
+        // done and question — full notification flow
         if (isDuplicate(type, project, sessionId || 'unknown')) {
           res.writeHead(200, {'Content-Type': 'application/json'});
           res.end(JSON.stringify({ ok: true, deduplicated: true }));
@@ -181,7 +216,7 @@ const server = http.createServer((req, res) => {
           machine: machine || 'unknown',
           cwd: cwd || '',
           type,
-          questionText: null
+          questionText: type === 'question' ? (questionText || null) : null
         });
 
         // Emit to SSE event bus
@@ -235,6 +270,12 @@ const server = http.createServer((req, res) => {
   } else if (pathname === '/sessions') {
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify(getAllSessions()));
+
+  } else if (/^\/sessions\/([^/]+)\/dismiss$/.test(pathname) && req.method === 'POST') {
+    const id = decodeURIComponent(pathname.match(/^\/sessions\/([^/]+)\/dismiss$/)[1]);
+    dismissSession(id);
+    res.writeHead(200, {'Content-Type': 'application/json'});
+    res.end(JSON.stringify({ ok: true }));
 
   } else if (pathname === '/sdk/sessions' && req.method === 'GET') {
     getSdkSessions().then(sessions => {
