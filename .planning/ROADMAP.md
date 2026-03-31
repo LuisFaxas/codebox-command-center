@@ -113,7 +113,11 @@ Plans:
   3. When Claude asks a question, the session card displays the actual question text and a "Focus Terminal" button that jumps to the right tmux window
   4. User can dismiss/acknowledge sessions and copy question text to clipboard directly from the dashboard
   5. Server provides a /hooks/install endpoint that generates ready-to-paste hook config for any machine (CodeBox, Lenovo, Mac)
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 06-01-PLAN.md — Extend hook script for 4 event types, enhance session store and server trigger routing
+- [ ] 06-02-PLAN.md — Frontend session cards with tool activity, conversation toolbar, SDK matching, clipboard actions
+- [ ] 06-03-PLAN.md — Hook installer page with platform-specific setup instructions
 
 ### Phase 7: Manager AI
 **Goal**: An AI observer provides on-demand summaries of what all sessions are doing and flags sessions that may need attention
@@ -138,5 +142,5 @@ Phases execute in numeric order: 4 → 5 → 6 → 7
 | 3. Notifications Dashboard | v1.0 | 3/4 | Complete | 2026-03-28 |
 | 4. Session Foundation | v2.0 | 2/2 | Complete | 2026-03-30 |
 | 5. Frontend Rebuild + Session Cards | v2.0 | 4/4 | Complete | 2026-03-30 |
-| 6. Rich Hooks + Interaction | v2.0 | 0/? | Not started | - |
+| 6. Rich Hooks + Interaction | v2.0 | 0/3 | Planning | - |
 | 7. Manager AI | v2.0 | 0/? | Not started | - |
