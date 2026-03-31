@@ -226,8 +226,14 @@
   border-bottom: 1px solid var(--border-thin);
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  justify-content: space-between;
   flex-shrink: 0;
+}
+
+.conversation-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .conversation-header .project-name {
@@ -235,6 +241,29 @@
   font-weight: 600;
   line-height: 1.3;
   color: var(--text-primary);
+}
+
+.conversation-toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-thin);
+  border-radius: 6px;
+  padding: 4px 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.2s ease;
+}
+
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .message-list {

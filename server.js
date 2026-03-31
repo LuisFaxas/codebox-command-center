@@ -1,7 +1,7 @@
 import http from 'http';
 import { readFileSync, existsSync } from 'fs';
 import { join, basename, extname } from 'path';
-import { getSdkSessions, getSdkMessages, sendResponse } from './sdk-bridge.js';
+import { getSdkSessions, getSdkMessages, sendResponse, findSdkSessionForCwd } from './sdk-bridge.js';
 import { load as loadConfig, get as getConfig, update as updateConfig, save as saveConfig, getVoices, DATA_DIR, SAMPLES_DIR } from './config.js';
 import { generateSamples, generateCached, getCachePath, clearCache, getSamples, safeName } from './tts.js';
 import { emit, addClient, getClientCount } from './sse.js';
@@ -276,6 +276,13 @@ const server = http.createServer((req, res) => {
     dismissSession(id);
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({ ok: true }));
+
+  } else if (pathname === '/sdk/match-session' && req.method === 'GET') {
+    const cwd = params.get('cwd') || '';
+    findSdkSessionForCwd(cwd).then(match => {
+      res.writeHead(200, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify(match));
+    });
 
   } else if (pathname === '/sdk/sessions' && req.method === 'GET') {
     getSdkSessions().then(sessions => {

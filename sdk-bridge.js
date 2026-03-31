@@ -39,6 +39,18 @@ export async function getSdkMessages(sessionId, limit = 20, offset = 0) {
   }
 }
 
+export async function findSdkSessionForCwd(targetCwd) {
+  try {
+    const sessions = await listSessions({ limit: 50 });
+    const match = sessions
+      .filter(s => s.cwd === targetCwd)
+      .sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+    return match[0] || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function sendResponse(sessionId, text) {
   let session;
   try {

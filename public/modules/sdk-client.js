@@ -31,6 +31,15 @@ async function sendSdkResponse(sessionId, text) {
   }
 }
 
+async function matchSdkSession(cwd) {
+  try {
+    const res = await fetch(`/sdk/match-session?cwd=${encodeURIComponent(cwd)}`);
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
 async function dismissSessionApi(sessionId) {
   try {
     const res = await fetch(`/sessions/${encodeURIComponent(sessionId)}/dismiss`, { method: 'POST' });
@@ -40,4 +49,4 @@ async function dismissSessionApi(sessionId) {
   }
 }
 
-export { fetchSdkSessions, fetchMessages, sendSdkResponse, dismissSessionApi };
+export { fetchSdkSessions, fetchMessages, sendSdkResponse, dismissSessionApi, matchSdkSession };
