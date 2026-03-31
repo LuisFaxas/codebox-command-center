@@ -248,6 +248,42 @@
       border: 1px solid rgba(239, 68, 68, 0.3);
     }
 
+    /* Quick install section */
+    .quick-install {
+      background: var(--bg-surface);
+      border: var(--glass-border);
+      border-radius: var(--glass-radius);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .quick-install-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .quick-install-header:hover { background: var(--bg-elevated); }
+    .quick-install-icon { font-size: 1.2rem; }
+    .quick-install-toggle {
+      margin-left: auto;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .quick-install-toggle.open { transform: rotate(180deg); }
+    .quick-install-body {
+      display: none;
+      padding: 0 20px 20px;
+    }
+    .quick-install-body.open { display: block; }
+    .quick-install-body p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+
     .back-link {
       display: inline-block;
       margin-bottom: 20px;
@@ -278,6 +314,31 @@
 
   <div class="prereq-box">
     <strong>Prerequisite:</strong> Node.js must be installed on the target machine. Verify with <code>node --version</code>.
+  </div>
+
+  <div class="quick-install">
+    <div class="quick-install-header" onclick="toggleQuickInstall()">
+      <span class="quick-install-icon">&#9889;</span>
+      <strong>Quick Install via Claude Code</strong>
+      <span class="quick-install-toggle" id="quick-toggle">&#9660;</span>
+    </div>
+    <div class="quick-install-body" id="quick-install-body">
+      <p>Paste this prompt into Claude Code on the remote machine and it will set everything up:</p>
+      <div class="code-block">
+        <pre id="claude-prompt">Download the notification hook script and configure my Claude Code settings to send notifications to the voice notification server.
+
+1. Create ~/.claude/hooks/ directory if it doesn't exist
+2. Download the hook script: curl -o ~/.claude/hooks/notify-trigger.cjs <span class="origin-url"></span>/hooks/script
+3. Add these hooks to my ~/.claude/settings.json (merge with existing, don't overwrite):
+   - Stop hook: VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs done
+   - Notification hook (idle_prompt): VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs question
+   - Notification hook (elicitation_dialog): VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs question
+   - PostToolUse hook (Bash|Edit|Write|Read|MultiEdit|Glob|Grep): VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs tool
+   - SessionStart hook: VOICE_NOTIFY_URL=<span class="origin-url"></span> node ~/.claude/hooks/notify-trigger.cjs session-start
+4. Test it works: curl -X POST <span class="origin-url"></span>/hooks/test</pre>
+        <button class="copy-btn" onclick="copyBlock('claude-prompt')">Copy</button>
+      </div>
+    </div>
   </div>
 
   <div class="tab-bar">
@@ -607,19 +668,43 @@ curl -o ~/.claude/hooks/notify-trigger.cjs <span class="origin-url"></span>/hook
     // Auto-detect platform on load
     activateTab(detectPlatform());
 
-    // Copy to clipboard
+    // Quick install toggle
+    function toggleQuickInstall() {
+      document.getElementById('quick-install-body').classList.toggle('open');
+      document.getElementById('quick-toggle').classList.toggle('open');
+    }
+
+    // Copy to clipboard — with fallback for HTTP contexts
     function copyBlock(id) {
       const pre = document.getElementById(id);
       const text = pre.textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        const btn = pre.parentElement.querySelector('.copy-btn');
+      const btn = pre.parentElement.querySelector('.copy-btn');
+
+      function onSuccess() {
         btn.textContent = 'Copied!';
         btn.classList.add('copied');
         setTimeout(() => {
           btn.textContent = 'Copy';
           btn.classList.remove('copied');
         }, 2000);
-      });
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(onSuccess).catch(fallback);
+      } else {
+        fallback();
+      }
+
+      function fallback() {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); onSuccess(); }
+        catch (e) { btn.textContent = 'Failed'; }
+        document.body.removeChild(ta);
+      }
     }
 
     // Test connection
