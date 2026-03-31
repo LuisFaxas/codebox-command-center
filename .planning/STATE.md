@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Center Console
 status: Ready to plan
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-03-31T01:05:09.447Z"
+stopped_at: Completed 06.1-01-PLAN.md
+last_updated: "2026-03-31T02:37:00Z"
 progress:
   total_phases: 4
   completed_phases: 2
@@ -59,6 +59,7 @@ Plan: Not started
 | Phase 06 P01 | 6min | 2 tasks | 3 files |
 | Phase 06 P03 | 2min | 1 tasks | 2 files |
 | Phase 06 P02 | 4min | 2 tasks | 6 files |
+| Phase 06.1 P01 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,7 @@ Recent decisions affecting current work:
 - [Phase 06]: Used window.location.origin for dynamic server URL in hook installer page
 - [Phase 06]: Clipboard uses navigator.clipboard.writeText with execCommand fallback for HTTP contexts
 - [Phase 06]: SDK session matching: sdkSessionId first, cwd-based fallback, then empty state
+- [Phase 06.1]: Export extractTextContent as named export for testability
 
 ### Pending Todos
 
@@ -97,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T01:00:21.639Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-03-31T02:37:00Z
+Stopped at: Completed 06.1-01-PLAN.md
 Resume file: None
